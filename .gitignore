@@ -10,6 +10,7 @@ venv/
 
 # generated
 chroma_db/
+chroma_data/
 *.log
 logs/
 

@@ -1,15 +1,16 @@
-# HR Agent — Quantic "AI Engineering Techniques and Architectures" Project
+# HR Agent — Quantic "AI Engineering Techniques and Architectures" Capstone
 
+**Owner:** Luis Toruno (lutor23) | **Deadline:** October 4, 2026
 Source spec: `ai project.pdf` (Quantic). This file condenses it; when in doubt, the PDF wins.
 Goal: a deployed, agentic HR policy/operations assistant = **RAG over policy docs + agent orchestrator + MCP tools over mock data**, with cited, grounded answers.
 
-## Stack (decided)
-- Python venv at `.venv/`, deps in `requirements.txt`. Secrets only via env vars (`.env` is gitignored; `.env.example` is committed).
-- FastAPI web app + chat UI; LLM via OpenRouter (OpenAI-compatible client); local embeddings (`all-MiniLM-L6-v2`); Chroma vector store persisted to `CHROMA_PERSIST_DIR`.
-- MCP server (`mcp` SDK) over stdio by default (`MCP_TRANSPORT`), optionally HTTP. Single-service deploy on Render/Railway free tier.
+## Stack
+- Python venv at `.venv/` (system Python is 3.14, too new for chromadb/sentence-transformers wheels — use `uv venv --python 3.12 .venv`), deps in `requirements.txt`. Secrets only via env vars (`.env` is gitignored; `.env.example` is committed).
+- FastAPI web app + chat UI; LLM via OpenRouter (OpenAI-compatible client, free-tier model); local embeddings (`all-MiniLM-L6-v2`); Chroma vector store persisted to `CHROMA_PERSIST_DIR`.
+- MCP server (`mcp` SDK) over stdio by default (`MCP_TRANSPORT`), optionally HTTP. Single-service deploy on Render.
 - `SEED=42` everywhere deterministic behavior matters (chunking, eval sampling).
 
-## Repo layout (required by the grader)
+## Repo Layout (required by the grader)
 | Path | Contents |
 |---|---|
 | `app/` | FastAPI app, agent orchestrator, MCP client, RAG code |
@@ -24,9 +25,11 @@ Goal: a deployed, agentic HR policy/operations assistant = **RAG over policy doc
 | `deployed.md` | Deployed URL, `/health` URL, cold-start notes |
 | `.github/workflows/` | CI/CD |
 
+> A prior planning pass used `src/`/`data/`/`eval/` instead of `app/`/`mock_data/`/`evaluation/`; renamed Sep 22 to match the grader spec. If `src.` or `data/` shows up in an old doc or comment, it's stale.
+
 Repo must be shared with GitHub user **`quantic-grader`**.
 
-## Requirements checklist
+## Requirements Checklist
 **RAG**
 - Parse/clean ≥2 formats; heading-aware chunking (justify the choice); embed; store in vector DB.
 - Persist citation metadata per chunk: doc title/ID, section, source snippet.
@@ -62,29 +65,6 @@ Repo must be shared with GitHub user **`quantic-grader`**.
 
 **Design docs** — justify: orchestration approach, MCP design, transport, tool schemas, embedding model, chunking, k, vector store, deploy architecture, guardrails. Include an architecture diagram (web app → orchestrator/MCP client → MCP server → RAG index + mock data; LLM provider) and the two demo tasks with expected MCP call sequences.
 
-## Demo video (7–10 min, screen share + voiceover)
-Two end-to-end agentic tasks on the **deployed** app; for each, explain tool names, arguments, outputs, citations, final answer/action. Plus quick walkthrough of design, deployment, CI/CD, eval results. Group members must all speak, be on camera, and show government ID.
-
-## Rubric emphasis (score 5)
-Cited/grounded answers · fully working MCP with clear traces and error handling · two multi-step tasks using RAG + mock-data tools · clean separation of web app / orchestrator / MCP client+server / RAG / mock data / LLM · working free-tier deploy · CI with MCP test · strong eval across all metrics · strong docs and demo.
-
-## Working conventions
-- Never commit secrets or `.venv/`/`venv/`; keep `.env.example` in sync when adding env vars.
-- Keep corpus and mock data small (free-tier resources); mock data must be obviously synthetic.
-- Record AI-tool usage (what worked / what didn't) in `ai-tooling.md` as you go, not at the end.
-
-
-
-
-# HR Agent — Claude Code Project Context
-
-**Owner:** Luis Toruno (lutor23) | **Deadline:** October 4, 2026
-**Repo layout below follows the grader spec above** (`app/`, `mcp/`, `mock_data/`, `evaluation/`, `docs/`) — a prior planning pass used `src/`/`data/`/`eval/` instead; that was renamed on Sep 22 to match the spec. If you see `src.` or `data/` in an old doc or comment, it's stale.
-
-**Stack:** FastAPI · ChromaDB · sentence-transformers (all-MiniLM-L6-v2) · OpenRouter free tier · MCP SDK · pytest · GitHub Actions · Render
-
----
-
 ## Master Task List
 
 ### ✅ Day 1 — Scaffold (Sep 22) DONE
@@ -93,7 +73,7 @@ Cited/grounded answers · fully working MCP with clear traces and error handling
 
 ### ✅ Day 2 — Data & Ingestion (Sep 22) DONE
 - [x] `mock_data/employees.json`, `pto_balances.json`, `benefits.json` — 10 employees (E001–E010)
-- [x] `app/loaders.py` — `Chunk` dataclass + MD/HTML/PDF loaders, heading-aware chunking → **97 chunks** (not 146 — that earlier estimate was wrong; 97 is correct for 10 docs at ~1200 chars/chunk)
+- [x] `app/loaders.py` — `Chunk` dataclass + MD/HTML/PDF loaders, heading-aware chunking → **97 chunks**
 - [x] `app/ingest.py` — embed + upsert into ChromaDB, `--reset`/`--smoke` CLI flags, 5/5 smoke queries pass
 
 ### ✅ Day 3 — RAG Pipeline (Sep 22) DONE
@@ -145,8 +125,6 @@ Cited/grounded answers · fully working MCP with clear traces and error handling
 
 ### 🔲 Day 13 — Final Review & Submit (Oct 4)
 
----
-
 ## Key Files
 
 | File | Purpose |
@@ -178,7 +156,16 @@ cp .env.example .env          # set OPENROUTER_API_KEY
 ```
 
 ## Known Constraints
-
 - OpenRouter free tier: model availability and rate limits are unstable; `ask()` degrades gracefully (returns top chunk + citation) rather than failing outright.
 - `requirements.txt` pins `pydantic==2.9.2`, which conflicts with `mcp==1.2.0`'s `pydantic>=2.10.1`; bumped to `pydantic==2.10.6` — don't revert without also relaxing the mcp pin.
-- Never commit `.venv/`/`venv/` — an earlier local venv was accidentally added to git tracking before `.gitignore` was fixed; already untracked, stays untracked.
+- Never commit `.venv/`/`venv/` — an earlier local venv was accidentally added to git tracking before `.gitignore` was fixed; already untracked, stays untracked. Keep `.env.example` in sync when adding new env vars.
+- Keep corpus and mock data small (free-tier resources); mock data must be obviously synthetic.
+
+## Demo Video (7–10 min, screen share + voiceover)
+Two end-to-end agentic tasks on the **deployed** app; for each, explain tool names, arguments, outputs, citations, final answer/action. Plus quick walkthrough of design, deployment, CI/CD, eval results. Group members must all speak, be on camera, and show government ID.
+
+## Rubric Emphasis (score 5)
+Cited/grounded answers · fully working MCP with clear traces and error handling · two multi-step tasks using RAG + mock-data tools · clean separation of web app / orchestrator / MCP client+server / RAG / mock data / LLM · working free-tier deploy · CI with MCP test · strong eval across all metrics · strong docs and demo.
+
+## Working Conventions
+- Record AI-tool usage (what worked / what didn't) in `ai-tooling.md` as you go, not at the end.
