@@ -24,7 +24,7 @@ mcp==1.2.0
 
 # Utilities
 python-dotenv==1.0.1
-pydantic==2.9.2
+pydantic==2.10.6
 tqdm==4.66.5
 numpy==1.26.4
 

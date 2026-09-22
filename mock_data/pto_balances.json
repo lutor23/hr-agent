@@ -1,0 +1,12 @@
+{
+  "E001": {"annual_days": 18, "available_hours": 96.0, "pending_hours": 8.0, "used_hours": 48.0, "carryover_hours": 16.0},
+  "E002": {"annual_days": 20, "available_hours": 120.5, "pending_hours": 0.0, "used_hours": 32.0, "carryover_hours": 40.0},
+  "E003": {"annual_days": 10, "available_hours": 40.0, "pending_hours": 0.0, "used_hours": 8.0, "carryover_hours": 0.0},
+  "E004": {"annual_days": 15, "available_hours": 72.0, "pending_hours": 16.0, "used_hours": 56.0, "carryover_hours": 8.0},
+  "E005": {"annual_days": 8, "available_hours": 30.0, "pending_hours": 0.0, "used_hours": 12.0, "carryover_hours": 0.0},
+  "E006": {"annual_days": 20, "available_hours": 144.0, "pending_hours": 40.0, "used_hours": 16.0, "carryover_hours": 40.0},
+  "E007": {"annual_days": 15, "available_hours": 64.0, "pending_hours": 0.0, "used_hours": 64.0, "carryover_hours": 24.0},
+  "E008": {"annual_days": 10, "available_hours": 18.5, "pending_hours": 0.0, "used_hours": 0.0, "carryover_hours": 0.0},
+  "E009": {"annual_days": 20, "available_hours": 88.0, "pending_hours": 8.0, "used_hours": 72.0, "carryover_hours": 0.0},
+  "E010": {"annual_days": 20, "available_hours": 160.0, "pending_hours": 0.0, "used_hours": 24.0, "carryover_hours": 40.0}
+}
