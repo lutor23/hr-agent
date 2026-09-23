@@ -17,6 +17,8 @@ from mcp.client.stdio import stdio_client
 SERVER_PATH = Path(__file__).resolve().parent.parent / "mcp" / "server.py"
 
 EXPECTED_TOOLS = {
+    "create_mock_hr_ticket",
+    "draft_hr_email",
     "search_policy_documents",
     "get_policy_section",
     "lookup_employee_profile",
@@ -38,13 +40,32 @@ CALLS = {
     "pto_missing": ("check_pto_balance", {"employee_id": "E999"}),
     "benefits": ("lookup_benefits_status", {"employee_id": "E001"}),
     "benefits_missing": ("lookup_benefits_status", {"employee_id": "E999"}),
+    "ticket": (
+        "create_mock_hr_ticket",
+        {"employee_id": "E001", "type": "Leave", "description": "Question about FMLA eligibility"},
+    ),
+    "ticket_second": (
+        "create_mock_hr_ticket", {"employee_id": "E002", "type": "pto", "description": "Balance looks wrong"},
+    ),
+    "ticket_bad_type": (
+        "create_mock_hr_ticket", {"employee_id": "E001", "type": "lawsuit", "description": "x"},
+    ),
+    "ticket_unknown_employee": (
+        "create_mock_hr_ticket", {"employee_id": "E999", "type": "pto", "description": "x"},
+    ),
+    "ticket_empty": ("create_mock_hr_ticket", {"employee_id": "E001", "type": "pto", "description": "  "}),
+    "email": (
+        "draft_hr_email",
+        {"to": "hr@acmecorp.example.com", "subject": "PTO", "context": "I need two weeks off in December."},
+    ),
 }
 
 
 async def _run_session() -> dict:
-    params = StdioServerParameters(
-        command=sys.executable, args=[str(SERVER_PATH)], env=dict(os.environ)
-    )
+    # draft_hr_email calls the LLM inside the server; point it at a dead port so the
+    # tests are offline and deterministic (the tool falls back to a template).
+    env = {**os.environ, "OPENROUTER_BASE_URL": "http://127.0.0.1:9/v1"}
+    params = StdioServerParameters(command=sys.executable, args=[str(SERVER_PATH)], env=env)
     out: dict = {}
     async with stdio_client(params) as (read, write):
         async with ClientSession(read, write) as session:
@@ -65,7 +86,7 @@ def mcp_results() -> dict:
     return asyncio.run(_run_session())
 
 
-def test_discovers_all_five_tools(mcp_results):
+def test_discovers_all_seven_tools(mcp_results):
     assert {t.name for t in mcp_results["tools"]} >= EXPECTED_TOOLS
 
 
@@ -120,3 +141,25 @@ def test_employee_tools_return_records(mcp_results):
 def test_unknown_employee_returns_structured_error(mcp_results, key):
     _, err = mcp_results[key]
     assert err == {"error": "employee_not_found", "employee_id": "E999"}
+
+
+def test_ticket_creation_is_mock_and_sequential(mcp_results):
+    _, t1 = mcp_results["ticket"]
+    _, t2 = mcp_results["ticket_second"]
+    assert (t1["ticket_id"], t2["ticket_id"]) == ("HR-0001", "HR-0002")
+    assert t1["type"] == "leave"  # normalised to lowercase
+    assert t1["mock"] is True and "mock" in t1["status"]
+
+
+def test_ticket_validation_errors_are_structured(mcp_results):
+    assert mcp_results["ticket_bad_type"][1]["error"] == "invalid_ticket_type"
+    assert "pto" in mcp_results["ticket_bad_type"][1]["valid_types"]
+    assert mcp_results["ticket_unknown_employee"][1]["error"] == "employee_not_found"
+    assert mcp_results["ticket_empty"][1]["error"] == "empty_description"
+
+
+def test_email_is_a_draft_and_never_sent(mcp_results):
+    _, email = mcp_results["email"]
+    assert email["sent"] is False
+    assert email["to"] == "hr@acmecorp.example.com"
+    assert "two weeks off in December" in email["body"]  # template fallback (LLM offline)

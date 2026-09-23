@@ -12,8 +12,8 @@ the same name. Running this file as a script (not `python -m mcp.server`)
 keeps the collision harmless — the script's own directory becomes sys.path[0],
 which contains no nested `mcp/` folder, so `import mcp` below still resolves
 to the real SDK in site-packages. Do not add an `__init__.py` here or import
-this module by dotted path (`mcp.server`) from elsewhere in the repo; use
-mcp/_smoke_test.py's approach (importlib by file path) or a subprocess instead.
+this module by dotted path (`mcp.server`) from elsewhere in the repo; spawn it
+as a subprocess over stdio instead, as app/agent.py and the tests do.
 """
 
 import sys
@@ -25,10 +25,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from mcp.server.fastmcp import FastMCP  # noqa: E402  (must follow sys.path fix)
 
-from app import employee_data  # noqa: E402
+from app import config, employee_data, llm  # noqa: E402
 from app.retriever import get_section, retrieve  # noqa: E402
 
 mcp = FastMCP("hr-policy-assistant")
+
+TICKET_TYPES = ("pto", "benefits", "payroll", "leave", "equipment", "conduct", "other")
+# Mock ticket store: lives only as long as this server process. Nothing here is a
+# real HR system, and nothing is ever sent anywhere.
+_TICKETS: dict[str, dict] = {}
 
 
 @mcp.tool()
@@ -107,6 +112,66 @@ def lookup_benefits_status(employee_id: str) -> dict:
     if benefits is None:
         return {"error": "no_benefits_record", "employee_id": employee_id}
     return {"employee_id": employee_id, **benefits}
+
+
+@mcp.tool()
+def create_mock_hr_ticket(employee_id: str, type: str, description: str) -> dict:
+    """Open a MOCK HR case for an employee (in-memory only; no real HR system is
+    touched). Use to escalate something policy documents can't resolve. `type`
+    is one of: pto, benefits, payroll, leave, equipment, conduct, other.
+
+    Returns the ticket (ticket_id, status, ...) or a structured error for an
+    unknown employee, invalid type, or empty description.
+    """
+    if employee_data.get_employee(employee_id) is None:
+        return {"error": "employee_not_found", "employee_id": employee_id}
+    ticket_type = type.strip().lower()
+    if ticket_type not in TICKET_TYPES:
+        return {"error": "invalid_ticket_type", "type": type, "valid_types": list(TICKET_TYPES)}
+    if not description.strip():
+        return {"error": "empty_description"}
+    ticket_id = f"HR-{len(_TICKETS) + 1:04d}"
+    _TICKETS[ticket_id] = {
+        "ticket_id": ticket_id,
+        "employee_id": employee_id,
+        "type": ticket_type,
+        "description": description.strip(),
+        "status": "open (mock)",
+        "mock": True,
+    }
+    return _TICKETS[ticket_id]
+
+
+@mcp.tool()
+def draft_hr_email(to: str, subject: str, context: str) -> dict:
+    """Draft (never send) a short professional email about an HR matter, written
+    only from the facts in `context`. The result is a draft for the user to
+    review; `sent` is always false.
+    """
+    body = None
+    try:
+        completion = llm.get_client().chat.completions.create(
+            model=config.LLM_MODEL,
+            temperature=0.3,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Write a concise, professional workplace email body (no subject "
+                    "line) written BY the employee TO the recipient, addressing the "
+                    "recipient (not the employee). Use ONLY facts from the provided "
+                    "context; do not invent dates, numbers or commitments. Sign off with "
+                    "'[Your name]'.",
+                },
+                {"role": "user", "content": f"To: {to}\nSubject: {subject}\nContext: {context}"},
+            ],
+        )
+        body = (completion.choices[0].message.content or "").strip() or None
+    except Exception:  # LLM unavailable: fall back to a plain template below
+        body = None
+    generated = body is not None
+    if body is None:
+        body = f"Hello,\n\n{context.strip()}\n\nThank you,\n[Your name]"
+    return {"to": to, "subject": subject, "body": body, "sent": False, "llm_generated": generated}
 
 
 if __name__ == "__main__":

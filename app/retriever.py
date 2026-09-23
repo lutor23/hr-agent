@@ -8,9 +8,9 @@ import time
 from dataclasses import dataclass
 from typing import List, Optional
 
-from openai import APIError, APITimeoutError, OpenAI
+from openai import APIError, APITimeoutError
 
-from app import config, employee_data
+from app import config, employee_data, llm
 from app.ingest import get_collection
 from app.loaders import Chunk
 from app.models import ChatResponse, Citation
@@ -167,10 +167,7 @@ def ask(query: str, employee_id: Optional[str] = None, top_k: int = 5) -> ChatRe
         if context is None:
             return respond(f"I couldn't find an employee with ID {employee_id}.", error="unknown_employee")
 
-    client = OpenAI(
-        api_key=config.OPENROUTER_API_KEY, base_url=config.OPENROUTER_BASE_URL,
-        timeout=config.LLM_TIMEOUT_S, max_retries=1,
-    )
+    client = llm.get_client()
     try:
         completion = client.chat.completions.create(
             model=config.LLM_MODEL,

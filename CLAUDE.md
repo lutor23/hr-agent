@@ -90,13 +90,14 @@ Repo must be shared with GitHub user **`quantic-grader`**.
 - [x] Errors are returned as structured payloads (`{"error": "employee_not_found", ...}`), never raised, so the agent can handle them without special exception logic
 - [x] `mcp/_smoke_test.py` (manual) and `tests/test_mcp_tools.py` (12 tests) drive the server through a real MCP client over stdio — 30/30 tests passing overall
 
-### 🔲 Day 5 — Action Tools & Agent (Sep 26)
-- [ ] Tool: `create_mock_hr_ticket(employee_id, type, description)` → ticket ID (mock/in-memory only)
-- [ ] Tool: `draft_hr_email(to, subject, context)` → draft string via LLM
-- [ ] `app/agent.py` — orchestrator loop: plan → tool calls → synthesize answer
-- [ ] ≥2 multi-step workflows (e.g. PTO request guidance + balance check; remote-work eligibility + data-security policy)
-- [ ] Structured, visible tool-call trace (no hidden chain-of-thought)
-- [ ] Graceful handling: MCP tool down, ambiguous request → ask for clarification
+### ✅ Day 5 — Action Tools & Agent DONE
+- [x] `create_mock_hr_ticket` (in-memory, ids `HR-0001`…, validated type/employee/description) and `draft_hr_email` (LLM-written, template fallback, `sent` always false) added to `mcp/server.py` → 7 tools
+- [x] `app/agent.py` — `HRAgent`: spawns the MCP server, discovers tools via `list_tools`, runs an OpenAI-format tool-calling loop (max 6 tool calls); every call goes through `session.call_tool`. CLI: `python -m app.agent "question" --employee E001`
+- [x] Operational trace: `ChatResponse.trace` (tool, args, ok, summary, ms) + one JSON log line per call on logger `hr_agent.trace`; `escalated` flag when a mock ticket is opened
+- [x] Citations `[DOC_ID: Section]` are verified against what tools actually returned (fuzzy section match; unreturned citations dropped); snippets included
+- [x] Guardrails: signed-in employee can only read their own records (`not_authorized`); missing employee ID → asks; LLM/tool failures → graceful answer + `error`; runaway loop → `max_steps_exceeded`
+- [x] Two multi-step workflows verified live: PTO request (balance + PTO policy sections), out-of-state remote work; plus ticket+email and missing-ID flows
+- [x] `tests/test_agent.py` (14, scripted fake LLM + real MCP server) and extended `test_mcp_tools.py` — 47 tests passing
 
 ### 🔲 Day 6 — FastAPI App (Sep 27)
 - [ ] `app/main.py` — FastAPI app + minimal chat UI (spec requires a UI, not just the API)
@@ -132,7 +133,8 @@ Repo must be shared with GitHub user **`quantic-grader`**.
 | `app/employee_data.py` | Read-only lookups against `mock_data/*.json` |
 | `app/models.py` | Shared `ChatRequest`/`ChatResponse`/`Citation`/`HealthResponse` |
 | `app/config.py` | Env-driven settings |
-| `mcp/server.py` | MCP tool server (Day 4, done); `mcp/_smoke_test.py` manual client check |
+| `app/agent.py` | Orchestrator: MCP client + tool-calling loop + trace (Day 5, done) |
+| `mcp/server.py` | MCP tool server, 7 tools (Days 4–5, done); `mcp/_smoke_test.py` manual client check |
 | `corpus/` | 10 policy docs (8 MD, 1 HTML, 1 PDF) |
 | `mock_data/` | Mock employees, PTO balances, benefits |
 | `evaluation/` | Eval set + metrics runner (Day 9–10, not yet created) |
@@ -153,6 +155,8 @@ cp .env.example .env          # set OPENROUTER_API_KEY
 ```
 
 ## Known Constraints
+- **Agent latency is dominated by the free LLM** (~20-25s for a 2-3 tool question; each LLM turn 3-8s, tools take ms). The p95 <8s eval target is unlikely on this model; the MCP server also loads the embedding model on its first search (~3s). Day 6 should keep one long-lived `HRAgent` (one server subprocess) for the app rather than one per request.
+- Mock tickets live only in the MCP server process's memory (reset when it restarts).
 - **`mcp/` collides with the installed `mcp` SDK package.** The grader requires a top-level `mcp/` dir, but an `mcp/__init__.py` (or dotted-importing `mcp.server`) would shadow the SDK and break `from mcp.server.fastmcp import FastMCP`. So `mcp/` has no `__init__.py`, and `server.py` is only ever run as a script/subprocess (sys.path[0] is then `mcp/` itself, so `import mcp` still finds the SDK). Never import our server by dotted path; spawn it via `StdioServerParameters` like the tests do.
 - **FastMCP flattens list returns into one content item per element.** A client reading `search_policy_documents` must parse *every* `result.content` item (empty list → no items), not just `content[0]`. The Day 5 agent's MCP client needs this.
 - Don't pipe MCP client scripts into `head`: the server's stderr logging blocks on the closed pipe and the process hangs (leaves orphaned `mcp/server.py` processes).
