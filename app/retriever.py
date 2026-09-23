@@ -61,6 +61,33 @@ def retrieve(
     return chunks
 
 
+def get_section(doc_id: str, section: str) -> Optional[dict]:
+    """Exact section lookup by doc_id + section name (case-insensitive).
+
+    Unlike retrieve(), this is a metadata match, not a similarity search — for
+    fetching a specific section an agent already knows the name of (e.g. after
+    search_policy_documents surfaced it). Returns None if no chunk matches.
+    """
+    collection = get_collection()
+    res = collection.get(where={"doc_id": doc_id}, include=["documents", "metadatas"])
+    matches = [
+        (meta, doc.split("\n", 1)[1] if "\n" in doc else doc)
+        for doc, meta in zip(res["documents"], res["metadatas"])
+        if meta["section"].lower() == section.lower()
+    ]
+    if not matches:
+        return None
+    matches.sort(key=lambda m: m[0]["chunk_id"])
+    meta = matches[0][0]
+    return {
+        "doc_id": meta["doc_id"],
+        "title": meta["title"],
+        "section": meta["section"],
+        "source_file": meta["source_file"],
+        "text": "\n\n".join(text for _, text in matches),
+    }
+
+
 def employee_context(employee_id: str) -> Optional[str]:
     """Plain-text summary of an employee's record, or None if the id is unknown."""
     emp = employee_data.get_employee(employee_id)

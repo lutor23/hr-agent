@@ -84,14 +84,11 @@ Repo must be shared with GitHub user **`quantic-grader`**.
 - [x] Manually verified: single-doc, multi-doc (remote-work query spans 3 sections), off-topic, unknown-employee, personalized (with employee context)
 - [x] `tests/test_loaders.py`, `tests/test_retriever.py` — 18 tests passing
 
-### 🔲 Day 4 — MCP Server (Sep 25)
-- [ ] `mcp/server.py` — MCP server skeleton with stdio transport (spec requires a top-level `mcp/` dir, not `app/mcp_server.py`)
-- [ ] Tool: `search_policy_documents(query, top_k=5)` — wraps `app.retriever.retrieve`
-- [ ] Tool: `get_policy_section(doc_id, section)`
-- [ ] Tool: `lookup_employee_profile(employee_id)`
-- [ ] Tool: `check_pto_balance(employee_id)`
-- [ ] Tool: `lookup_benefits_status(employee_id)`
-- [ ] Verify all 5 tools register and return correctly typed responses; agent must call them *through* MCP, not as direct function calls
+### ✅ Day 4 — MCP Server DONE
+- [x] `mcp/server.py` — FastMCP server, stdio transport, run as a script (`python mcp/server.py`)
+- [x] 5 tools: `search_policy_documents`, `get_policy_section` (exact metadata lookup via new `app.retriever.get_section`), `lookup_employee_profile`, `check_pto_balance`, `lookup_benefits_status`
+- [x] Errors are returned as structured payloads (`{"error": "employee_not_found", ...}`), never raised, so the agent can handle them without special exception logic
+- [x] `mcp/_smoke_test.py` (manual) and `tests/test_mcp_tools.py` (12 tests) drive the server through a real MCP client over stdio — 30/30 tests passing overall
 
 ### 🔲 Day 5 — Action Tools & Agent (Sep 26)
 - [ ] Tool: `create_mock_hr_ticket(employee_id, type, description)` → ticket ID (mock/in-memory only)
@@ -135,7 +132,7 @@ Repo must be shared with GitHub user **`quantic-grader`**.
 | `app/employee_data.py` | Read-only lookups against `mock_data/*.json` |
 | `app/models.py` | Shared `ChatRequest`/`ChatResponse`/`Citation`/`HealthResponse` |
 | `app/config.py` | Env-driven settings |
-| `mcp/` | MCP tool server (Day 4, not yet created) |
+| `mcp/server.py` | MCP tool server (Day 4, done); `mcp/_smoke_test.py` manual client check |
 | `corpus/` | 10 policy docs (8 MD, 1 HTML, 1 PDF) |
 | `mock_data/` | Mock employees, PTO balances, benefits |
 | `evaluation/` | Eval set + metrics runner (Day 9–10, not yet created) |
@@ -156,6 +153,9 @@ cp .env.example .env          # set OPENROUTER_API_KEY
 ```
 
 ## Known Constraints
+- **`mcp/` collides with the installed `mcp` SDK package.** The grader requires a top-level `mcp/` dir, but an `mcp/__init__.py` (or dotted-importing `mcp.server`) would shadow the SDK and break `from mcp.server.fastmcp import FastMCP`. So `mcp/` has no `__init__.py`, and `server.py` is only ever run as a script/subprocess (sys.path[0] is then `mcp/` itself, so `import mcp` still finds the SDK). Never import our server by dotted path; spawn it via `StdioServerParameters` like the tests do.
+- **FastMCP flattens list returns into one content item per element.** A client reading `search_policy_documents` must parse *every* `result.content` item (empty list → no items), not just `content[0]`. The Day 5 agent's MCP client needs this.
+- Don't pipe MCP client scripts into `head`: the server's stderr logging blocks on the closed pipe and the process hangs (leaves orphaned `mcp/server.py` processes).
 - OpenRouter free tier: model availability and rate limits are unstable; `ask()` degrades gracefully (returns top chunk + citation) rather than failing outright.
 - `requirements.txt` pins `pydantic==2.9.2`, which conflicts with `mcp==1.2.0`'s `pydantic>=2.10.1`; bumped to `pydantic==2.10.6` — don't revert without also relaxing the mcp pin.
 - Never commit `.venv/`/`venv/` — an earlier local venv was accidentally added to git tracking before `.gitignore` was fixed; already untracked, stays untracked. Keep `.env.example` in sync when adding new env vars.
