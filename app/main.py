@@ -92,7 +92,7 @@ def create_app(llm_fn: Optional[LLMFn] = None) -> FastAPI:
             )
         except asyncio.TimeoutError:
             log.warning(json.dumps({"session_id": req.session_id, "event": "chat_timeout"}))
-            raise HTTPException(504, "The request took too long. Please try again.")
+            raise HTTPException(504, "The request took too long. Please try again.") from None
 
     @app.get("/employees", include_in_schema=False)
     def employees() -> list[dict]:

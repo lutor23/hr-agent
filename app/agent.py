@@ -24,12 +24,12 @@ import time
 from contextlib import AsyncExitStack
 from typing import Any, Awaitable, Callable, Optional
 
-from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from openai import APIError, APITimeoutError
 
 from app import config, llm
 from app.models import ChatResponse, Citation, TraceStep
+from mcp import ClientSession, StdioServerParameters
 
 log = logging.getLogger("hr_agent.trace")
 
@@ -316,7 +316,8 @@ async def _cli(message: str, employee_id: Optional[str]) -> None:
     print(f"Escalated (mock ticket): {r.escalated}   Latency: {r.latency_ms} ms   Error: {r.error}")
     print("Trace:")
     for s in r.trace:
-        print(f"  {s.step}. {s.tool}({json.dumps(s.arguments)}) -> {'ok' if s.ok else 'FAILED'} [{s.result_summary}] {s.duration_ms}ms")
+        outcome = "ok" if s.ok else "FAILED"
+        print(f"  {s.step}. {s.tool}({json.dumps(s.arguments)}) -> {outcome} [{s.result_summary}] {s.duration_ms}ms")
 
 
 def main() -> None:

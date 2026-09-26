@@ -106,9 +106,12 @@ Repo must be shared with GitHub user **`quantic-grader`**.
 - [x] Chat UI at `/` (`app/static/index.html`, no build step): mock employee picker, example prompts for the demo tasks, answer, sources with snippets, tool-trace table, escalation/latency/error badges; verified in a real browser. `GET /employees` (id+name only) feeds the picker
 - [x] `tests/test_api.py` (10 tests, real lifespan + MCP subprocess, scripted LLM) — includes the "app starts" test CI needs
 
-### 🔲 Day 7 — Tests (Sep 28)
-- [ ] `tests/test_mcp_tools.py`, `tests/test_api.py` (loaders/retriever tests already exist)
-- [ ] App-starts test + MCP tool discovery/call test (both required by CI spec)
+### ✅ Day 7 — Tests & Lint DONE
+- [x] Coverage measured (`pytest --cov=app`): 82% → **98%**; suite grew 58 → **100 tests** (`test_loaders`, `test_retriever`, `test_ingest`, `test_agent`, `test_api`, `test_mcp_tools`, `test_llm`). New: per-format loader behaviour (HTML/PDF/markdown), `split_text`, `get_section`, single-shot `ask()` with a faked LLM, `ingest()`/`smoke()`/CLI on a throwaway DB, malformed/failing tool calls, default-LLM wiring, agent CLI, **concurrent requests over one shared MCP session (no cross-talk)**
+- [x] `tests/conftest.py` builds the ChromaDB index if missing, so the suite passes on a fresh checkout/CI (verified with `chroma_db/` deleted)
+- [x] Regression tests for two easy-to-break invariants: `app.config` imported before `chromadb` (telemetry), and `count_chunks()` never importing torch (free-tier memory)
+- [x] Lint: `ruff.toml` + `ruff check .` clean (rules E,F,W,I,B; `corpus/` excluded). `pytest.ini` added. `pytest-cov`, `ruff` pinned in requirements.txt. CI should run `ruff check .` (not `ruff format` — it would rewrite 9 files)
+- Not unit-tested by design: `mcp/server.py` runs in a subprocess so it isn't in the coverage number, but every tool is exercised through it by `test_mcp_tools.py`/`test_agent.py`; live-LLM behaviour (model availability/latency) is never in the suite.
 
 ### 🔲 Day 8 — CI/CD & Deployment (Sep 29)
 - [ ] `.github/workflows/ci.yml` — install → app-starts check → tests → deploy only if green

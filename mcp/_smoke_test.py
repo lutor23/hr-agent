@@ -10,8 +10,9 @@ import os
 import sys
 from pathlib import Path
 
-from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
+
+from mcp import ClientSession, StdioServerParameters
 
 SERVER_PATH = Path(__file__).resolve().parent / "server.py"
 

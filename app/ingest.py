@@ -3,13 +3,15 @@
 Usage: python -m app.ingest [--corpus ./corpus] [--db ./chroma_db] [--reset] [--smoke]
 """
 
-import argparse
+import argparse  # noqa: I001  (import order below is deliberate)
 
-from app import config  # sets ANONYMIZED_TELEMETRY=False before chromadb is imported
-
+# app.config must be imported BEFORE chromadb: it sets ANONYMIZED_TELEMETRY=False,
+# which chromadb reads at import time. Do not let an import sorter reorder this block.
+from app import config
 import chromadb
 from chromadb.config import Settings
 from chromadb.utils import embedding_functions
+
 from app.loaders import load_corpus
 
 SMOKE_QUERIES = {

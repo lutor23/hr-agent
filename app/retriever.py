@@ -51,7 +51,7 @@ def retrieve(
         include=["documents", "metadatas", "distances"],
     )
     chunks = []
-    for doc, meta, dist in zip(res["documents"][0], res["metadatas"][0], res["distances"][0]):
+    for doc, meta, dist in zip(res["documents"][0], res["metadatas"][0], res["distances"][0], strict=True):
         score = 1.0 - dist
         if score < min_score:
             continue
@@ -72,7 +72,7 @@ def get_section(doc_id: str, section: str) -> Optional[dict]:
     res = collection.get(where={"doc_id": doc_id}, include=["documents", "metadatas"])
     matches = [
         (meta, doc.split("\n", 1)[1] if "\n" in doc else doc)
-        for doc, meta in zip(res["documents"], res["metadatas"])
+        for doc, meta in zip(res["documents"], res["metadatas"], strict=True)
         if meta["section"].lower() == section.lower()
     ]
     if not matches:

@@ -11,8 +11,9 @@ import sys
 from pathlib import Path
 
 import pytest
-from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
+
+from mcp import ClientSession, StdioServerParameters
 
 SERVER_PATH = Path(__file__).resolve().parent.parent / "mcp" / "server.py"
 

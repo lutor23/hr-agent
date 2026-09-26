@@ -174,7 +174,14 @@ def test_invalid_ticket_type_does_not_count_as_escalation():
 
 def test_email_is_draft_only_and_falls_back_when_llm_unavailable():
     llm_fn = scripted(
-        calls(tool_call("draft_hr_email", to="hr@acmecorp.example.com", subject="PTO", context="I want 2 weeks off in December.")),
+        calls(
+            tool_call(
+                "draft_hr_email",
+                to="hr@acmecorp.example.com",
+                subject="PTO",
+                context="I want 2 weeks off in December.",
+            )
+        ),
         final("Here's a draft."),
     )
     r = run_agent(llm_fn)
@@ -215,3 +222,119 @@ def test_runaway_tool_loop_is_stopped():
     forever = [calls(tool_call("lookup_employee_profile", employee_id="E001")) for _ in range(10)]
     r = run_agent(scripted(*forever), max_steps=3)
     assert r.error == "max_steps_exceeded" and len(r.trace) == 3
+
+
+# --- malformed / failing tool calls, LLM wiring, CLI, concurrency ------------
+
+import re  # noqa: E402
+
+from app import agent as agent_module  # noqa: E402
+
+
+def test_malformed_tool_arguments_become_a_failed_step():
+    bad = SimpleNamespace(id="call-x", function=SimpleNamespace(name="check_pto_balance", arguments="{not json"))
+    r = run_agent(scripted(calls(bad), final("Sorry, I couldn't do that.")))
+    assert r.trace[0].ok is False and r.trace[0].result_summary == "error: invalid_arguments"
+    assert r.trace[0].arguments == {} and r.answer == "Sorry, I couldn't do that."
+
+
+def test_server_side_validation_error_is_reported_as_tool_error():
+    # Missing required argument: FastMCP rejects the call with isError=True.
+    r = run_agent(scripted(calls(tool_call("check_pto_balance")), final("I need an employee ID.")))
+    assert r.trace[0].ok is False and r.trace[0].result_summary == "error: tool_error"
+
+
+def test_default_llm_sends_model_messages_and_tools(monkeypatch):
+    seen = {}
+
+    async def create(**kwargs):
+        seen.update(kwargs)
+        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="hello", tool_calls=None))])
+
+    fake_client = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
+    monkeypatch.setattr(agent_module.llm, "get_async_client", lambda: fake_client)
+    msg = asyncio.run(agent_module.default_llm([{"role": "user", "content": "hi"}], [{"type": "function"}]))
+    assert msg.content == "hello"
+    assert seen["model"] == agent_module.config.LLM_MODEL and seen["temperature"] == 0
+    assert seen["tools"] == [{"type": "function"}] and seen["messages"][0]["content"] == "hi"
+
+
+def test_cli_prints_answer_citations_and_trace(monkeypatch, capfd):  # capfd: the MCP subprocess needs a real stderr fd
+    llm_fn = scripted(
+        calls(tool_call("get_policy_section", doc_id="POL-HR-001", section="PTO Request Process")),
+        final("Approval needed [POL-HR-001: PTO Request Process]."),
+    )
+    monkeypatch.setattr(agent_module, "default_llm", llm_fn)
+    asyncio.run(agent_module._cli("Can I take time off?", "E001"))
+    out = capfd.readouterr().out
+    assert "Approval needed" in out and "POL-HR-001: PTO Request Process" in out
+    assert "1. get_policy_section" in out and "Escalated (mock ticket): False" in out
+
+
+def test_summarize_covers_every_result_shape():
+    s = agent_module._summarize
+    assert s([1, 2, 3]) == "3 result(s)"
+    assert s({"error": "not_found"}) == "error: not_found"
+    assert s({"a": 1, "b": 2}) == "ok: a, b"
+    assert s("x" * 200) == "x" * 80 and s(None) == "None"
+
+
+def test_connected_and_ping_reflect_the_session_state():
+    async def go():
+        agent = HRAgent(llm_fn=scripted())
+        before = (agent.connected, await agent.ping())
+        await agent.connect()
+        during = (agent.connected, await agent.ping())
+        await agent.close()
+        return before, during, (agent.connected, await agent.ping())
+
+    assert asyncio.run(go()) == ((False, False), (True, True), (False, False))
+
+
+def test_concurrent_requests_over_one_shared_session_do_not_cross_talk():
+    """The web app shares one agent (one MCP session) across simultaneous requests."""
+
+    async def per_employee_llm(messages, tools):
+        await asyncio.sleep(0)  # let the two runs interleave
+        emp = re.search(r"employee ID is (E\d+)", messages[0]["content"]).group(1)
+        tool_msgs = [m for m in messages if m["role"] == "tool"]
+        if not tool_msgs:
+            return calls(tool_call("check_pto_balance", employee_id=emp))
+        return final(f"{emp}:{json.loads(tool_msgs[0]['content'])['available_hours']}")
+
+    async def go():
+        async with HRAgent(llm_fn=per_employee_llm) as agent:
+            return await asyncio.gather(
+                *[agent.run("PTO?", employee_id=e) for e in ("E001", "E002", "E003", "E006", "E010")]
+            )
+
+    answers = [r.answer for r in asyncio.run(go())]
+    assert answers == ["E001:96.0", "E002:120.5", "E003:40.0", "E006:144.0", "E010:160.0"]
+
+
+def test_a_crashing_tool_call_is_reported_as_unavailable_not_raised():
+    async def go():
+        async with HRAgent(llm_fn=scripted(
+            calls(tool_call("check_pto_balance", employee_id="E001")), final("Something went wrong on my side."),
+        )) as agent:
+            async def boom(name, args):
+                raise ConnectionResetError("server died mid-call")
+
+            agent._session.call_tool = boom
+            return await agent.run("PTO?", employee_id="E001")
+
+    r = asyncio.run(go())
+    assert r.trace[0].ok is False and r.trace[0].result_summary == "error: tool_unavailable"
+    assert r.answer == "Something went wrong on my side."
+
+
+def test_ping_is_false_when_the_server_stops_answering():
+    async def go():
+        async with HRAgent(llm_fn=scripted()) as agent:
+            async def hang():
+                await asyncio.sleep(10)
+
+            agent._session.send_ping = hang
+            return await agent.ping(timeout=0.2)
+
+    assert asyncio.run(go()) is False

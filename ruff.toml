@@ -1,0 +1,11 @@
+line-length = 120
+target-version = "py312"
+# corpus/generate_pdf.py is a one-off data-generation script, not application code
+extend-exclude = ["corpus"]
+
+[lint]
+select = ["E", "F", "W", "I", "B"]
+
+[lint.isort]
+known-first-party = ["app", "tests"]
+

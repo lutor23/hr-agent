@@ -5,9 +5,7 @@ Requires the vector store to already be built: `python -m app.ingest --reset`.
 
 import pytest
 
-from app.loaders import Chunk
 from app.retriever import (
-    NO_ANSWER,
     build_prompt,
     employee_context,
     extract_citations,
@@ -92,3 +90,104 @@ class TestExtractCitations:
         chunks = [make_chunk()]
         citations = extract_citations("See [1] and [9].", chunks)
         assert len(citations) == 1
+
+
+# --- get_section / retrieve options ----------------------------------------
+
+from types import SimpleNamespace  # noqa: E402
+
+import httpx  # noqa: E402
+from openai import APITimeoutError  # noqa: E402
+
+from app import retriever  # noqa: E402
+from app.retriever import get_section  # noqa: E402
+
+
+class TestGetSection:
+    def test_exact_lookup_returns_full_text_and_metadata(self):
+        s = get_section("POL-HR-001", "PTO Accrual Rates")
+        assert s["doc_id"] == "POL-HR-001" and s["source_file"] == "01-pto-policy.md"
+        assert "Years of Service" in s["text"]
+
+    def test_lookup_is_case_insensitive(self):
+        assert get_section("POL-HR-001", "pto accrual RATES") == get_section("POL-HR-001", "PTO Accrual Rates")
+
+    def test_unknown_section_or_doc_returns_none(self):
+        assert get_section("POL-HR-001", "No Such Section") is None
+        assert get_section("POL-HR-999", "PTO Accrual Rates") is None
+
+    def test_section_from_another_doc_is_not_returned(self):
+        assert get_section("POL-HR-002", "PTO Accrual Rates") is None
+
+
+def test_retrieve_min_score_zero_disables_the_relevance_filter():
+    assert retrieve("best pizza topping") == []
+    assert len(retrieve("best pizza topping", top_k=3, min_score=0.0)) == 3
+
+
+def test_retrieve_scores_are_sorted_best_first_and_above_threshold():
+    scores = [c.score for c in retrieve("How do I request time off?", top_k=5)]
+    assert scores == sorted(scores, reverse=True)
+    assert all(s >= retriever.MIN_SCORE for s in scores)
+
+
+# --- ask(): the single-shot RAG path (LLM faked) ----------------------------
+
+
+class FakeLLM:
+    """Stands in for the OpenAI client returned by llm.get_client()."""
+
+    def __init__(self, content="You get 10 days [1].", error=None):
+        self.content, self.error, self.requests = content, error, []
+        self.chat = SimpleNamespace(completions=SimpleNamespace(create=self._create))
+
+    def _create(self, **kwargs):
+        self.requests.append(kwargs)
+        if self.error:
+            raise self.error
+        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=self.content))])
+
+
+@pytest.fixture
+def fake_llm(monkeypatch):
+    fake = FakeLLM()
+    monkeypatch.setattr(retriever.llm, "get_client", lambda: fake)
+    return fake
+
+
+def test_ask_answers_with_citations_from_the_cited_excerpts(fake_llm):
+    r = retriever.ask("How many PTO days do I get per year?")
+    assert r.answer == "You get 10 days [1]." and r.error is None
+    assert len(r.citations) == 1 and r.citations[0].doc_id == "POL-HR-001"
+    assert r.tools_used == ["search_policy_documents"] and r.latency_ms > 0
+    user_prompt = fake_llm.requests[0]["messages"][1]["content"]
+    assert "Policy excerpts:" in user_prompt and "Question: How many PTO days" in user_prompt
+    assert fake_llm.requests[0]["temperature"] == 0
+
+
+def test_ask_includes_the_employees_details_in_the_prompt(fake_llm):
+    retriever.ask("How much PTO do I have?", employee_id="E001")
+    assert "Alice Johnson" in fake_llm.requests[0]["messages"][1]["content"]
+
+
+def test_ask_off_topic_never_calls_the_llm(fake_llm):
+    r = retriever.ask("What's the best pizza topping?")
+    assert r.answer == retriever.NO_ANSWER and r.citations == [] and fake_llm.requests == []
+
+
+def test_ask_unknown_employee_never_calls_the_llm(fake_llm):
+    r = retriever.ask("How much PTO do I have?", employee_id="E999")
+    assert r.error == "unknown_employee" and "E999" in r.answer and fake_llm.requests == []
+
+
+def test_ask_llm_failure_falls_back_to_the_top_retrieved_chunk(monkeypatch):
+    fake = FakeLLM(error=APITimeoutError(request=httpx.Request("POST", "http://x")))
+    monkeypatch.setattr(retriever.llm, "get_client", lambda: fake)
+    r = retriever.ask("How many PTO days do I get per year?")
+    assert r.error == "APITimeoutError" and "couldn't generate a full answer" in r.answer
+    assert len(r.citations) == 1 and r.citations[0].doc_id == "POL-HR-001"
+
+
+def test_ask_handles_an_empty_llm_reply(monkeypatch):
+    monkeypatch.setattr(retriever.llm, "get_client", lambda: FakeLLM(content=None))
+    assert retriever.ask("How many PTO days do I get per year?").answer == ""

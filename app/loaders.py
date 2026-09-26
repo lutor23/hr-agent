@@ -74,7 +74,7 @@ def _build_chunks(
 ) -> list[Chunk]:
     chunks: list[Chunk] = []
     for section, body in sections:
-        for i, piece in enumerate(split_text(body)):
+        for piece in split_text(body):
             chunks.append(
                 Chunk(
                     chunk_id=f"{doc_id}-{len(chunks):03d}",
