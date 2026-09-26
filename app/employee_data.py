@@ -22,3 +22,7 @@ def get_pto_balance(employee_id: str) -> Optional[dict]:
 
 def get_benefits(employee_id: str) -> Optional[dict]:
     return _load("benefits").get(employee_id)
+
+
+def list_employees() -> list[dict]:
+    return _load("employees")

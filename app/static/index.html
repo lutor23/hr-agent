@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Acme HR Assistant</title>
+<style>
+  :root {
+    --bg:#f6f7f9; --surface:#fff; --border:#dfe3e8; --text:#1b1f24; --muted:#5f6b7a;
+    --accent:#2457d6; --accent-bg:#e8eefc; --ok:#12703f; --ok-bg:#dff5e8;
+    --warn:#8a5a00; --warn-bg:#fff1d6; --err:#a32020; --err-bg:#fde4e4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#12151a; --surface:#1a1f26; --border:#2c333d; --text:#e8ebef; --muted:#9aa5b3;
+      --accent:#7ea2ff; --accent-bg:#1d2a4a; --ok:#5fd394; --ok-bg:#12321f;
+      --warn:#f0c060; --warn-bg:#3a2b0a; --err:#ff8a8a; --err-bg:#3c1616; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text);
+    font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  main { max-width:860px; margin:0 auto; padding:24px 16px 64px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 20px; font-size:14px; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:14px; }
+  label { font-size:13px; color:var(--muted); display:block; margin-bottom:4px; }
+  select, textarea { width:100%; font:inherit; color:inherit; background:var(--bg);
+    border:1px solid var(--border); border-radius:8px; padding:9px 10px; }
+  textarea { resize:vertical; min-height:72px; }
+  .row { display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; margin-top:12px; }
+  .row .grow { flex:1 1 220px; }
+  button { font:inherit; cursor:pointer; border-radius:8px; border:1px solid var(--accent);
+    background:var(--accent); color:#fff; padding:9px 18px; }
+  button:disabled { opacity:.55; cursor:wait; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+  .chip { background:var(--accent-bg); color:var(--accent); border:1px solid transparent;
+    padding:5px 11px; border-radius:999px; font-size:13px; }
+  .badges { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+  .badge { font-size:12px; padding:3px 9px; border-radius:999px; background:var(--accent-bg); color:var(--accent); }
+  .badge.warn { background:var(--warn-bg); color:var(--warn); }
+  .badge.err { background:var(--err-bg); color:var(--err); }
+  .badge.ok { background:var(--ok-bg); color:var(--ok); }
+  #answer p, #answer ul { margin:0 0 10px; } #answer ul { padding-left:22px; }
+  #answer .cite { font-size:12px; background:var(--accent-bg); color:var(--accent); border-radius:4px; padding:0 4px; white-space:nowrap; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin:16px 0 8px; }
+  .source { border-left:3px solid var(--accent); padding:4px 0 4px 10px; margin-bottom:10px; font-size:14px; }
+  .source .snip { color:var(--muted); font-size:13px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--border); vertical-align:top; }
+  th { color:var(--muted); font-weight:500; }
+  code { font-family:ui-monospace,Menlo,monospace; font-size:12px; word-break:break-word; }
+  #status { font-size:13px; color:var(--muted); }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Acme HR Assistant</h1>
+  <p class="sub">Ask about PTO, benefits, leave, remote work, expenses and more. Answers come from the HR policy documents and cite their sources.
+    Employees, tickets and emails here are mock data. <span id="health"></span></p>
+
+  <form class="card" id="form">
+    <label for="msg">Your question</label>
+    <textarea id="msg" maxlength="2000" placeholder="e.g. Can I take two weeks off in December, and what's the process?" required></textarea>
+    <div class="row">
+      <div class="grow">
+        <label for="emp">Signed in as (mock)</label>
+        <select id="emp"><option value="">Not signed in</option></select>
+      </div>
+      <button id="send" type="submit">Ask</button>
+    </div>
+    <div class="chips" id="chips"></div>
+  </form>
+
+  <div id="status" role="status" aria-live="polite"></div>
+
+  <section class="card" id="result" hidden>
+    <div class="badges" id="badges"></div>
+    <div id="answer"></div>
+    <div id="sources-wrap" hidden><h2>Sources</h2><div id="sources"></div></div>
+    <div id="trace-wrap" hidden><h2>Tool trace</h2>
+      <table><thead><tr><th>#</th><th>Tool</th><th>Arguments</th><th>Result</th><th>ms</th></tr></thead><tbody id="trace"></tbody></table>
+    </div>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const EXAMPLES = [
+  ["Two weeks off (uses PTO balance + policy)", "Can I take two weeks off in December, and what's the process?", "E001"],
+  ["Remote from another state", "Can I work remotely from another state for a month while my mom recovers from surgery?", "E001"],
+  ["My benefits", "What medical plan am I on and does it come with an HSA contribution?", "E002"],
+  ["Ticket + email (mock)", "I have an FMLA question. Please open an HR ticket and draft an email to hr@acmecorp.example.com.", "E004"],
+  ["Out of scope", "What's the best pizza topping?", ""],
+];
+const sessionId = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())).slice(0, 36);
+
+function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+// Tiny, safe markdown: escape first, then bold/italic, bullets, [DOC: Section] citations.
+function render(md) {
+  const inline = (t) => esc(t)
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\[(POL-[A-Z]+-\d+[^\]]*)\]/g, '<span class="cite">$1</span>');
+  const out = []; let list = false;
+  for (const line of md.split("\n")) {
+    const m = line.match(/^\s*(?:[-*]|\d+\.)\s+(.*)/);
+    if (m) { if (!list) { out.push("<ul>"); list = true; } out.push("<li>" + inline(m[1]) + "</li>"); continue; }
+    if (list) { out.push("</ul>"); list = false; }
+    if (line.trim()) out.push("<p>" + inline(line.replace(/^#+\s*/, "")) + "</p>");
+  }
+  if (list) out.push("</ul>");
+  return out.join("");
+}
+
+function badge(text, cls) { return `<span class="badge ${cls || ""}">${esc(text)}</span>`; }
+
+async function init() {
+  EXAMPLES.forEach(([label, q, e]) => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.textContent = label;
+    b.onclick = () => { $("msg").value = q; $("emp").value = e; $("msg").focus(); };
+    $("chips").appendChild(b);
+  });
+  try {
+    (await (await fetch("/employees")).json()).forEach((e) => {
+      const o = document.createElement("option"); o.value = e.employee_id; o.textContent = `${e.name} (${e.employee_id})`;
+      $("emp").appendChild(o);
+    });
+  } catch (_) {}
+  try {
+    const h = await (await fetch("/health")).json();
+    $("health").innerHTML = badge(`${h.status} · ${h.chroma_docs} chunks · ${h.mcp_tools} MCP tools`, h.status === "ok" ? "ok" : "err");
+  } catch (_) { $("health").innerHTML = badge("health check failed", "err"); }
+}
+
+$("form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const message = $("msg").value.trim(); if (!message) return;
+  $("send").disabled = true; $("result").hidden = true;
+  $("status").textContent = "Thinking… this can take 20–30 seconds on the free-tier model.";
+  try {
+    const res = await fetch("/chat", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, employee_id: $("emp").value || null, session_id: sessionId }) });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      const detail = typeof err.detail === "string" ? err.detail : "Request failed.";
+      throw new Error(`${res.status}: ${detail}`);
+    }
+    show(await res.json()); $("status").textContent = "";
+  } catch (e) { $("status").textContent = "Error — " + e.message; }
+  finally { $("send").disabled = false; }
+});
+
+function show(r) {
+  $("result").hidden = false;
+  $("badges").innerHTML = badge(`${(r.latency_ms / 1000).toFixed(1)}s`) +
+    badge(`${r.trace.length} tool call${r.trace.length === 1 ? "" : "s"}`) +
+    (r.escalated ? badge("Escalated · mock HR ticket opened", "warn") : "") +
+    (r.error ? badge("Partial answer: " + r.error, "err") : "");
+  $("answer").innerHTML = render(r.answer);
+  $("sources-wrap").hidden = !r.citations.length;
+  $("sources").innerHTML = r.citations.map((c) =>
+    `<div class="source"><strong>${esc(c.title)}</strong> <code>${esc(c.doc_id)}</code> · ${esc(c.section)}
+     <div class="snip">${esc(c.snippet || "")}…</div></div>`).join("");
+  $("trace-wrap").hidden = !r.trace.length;
+  $("trace").innerHTML = r.trace.map((s) =>
+    `<tr><td>${s.step}</td><td><code>${esc(s.tool)}</code></td><td><code>${esc(JSON.stringify(s.arguments))}</code></td>
+     <td>${s.ok ? "✓" : "✗"} ${esc(s.result_summary)}</td><td>${s.duration_ms}</td></tr>`).join("");
+}
+init();
+</script>
+</body>
+</html>

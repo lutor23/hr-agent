@@ -65,6 +65,11 @@ the user plainly that the ticket/email is a mock or a draft.
 
 {employee_line}"""
 
+def _snippet(text: str) -> str:
+    """Plain-text excerpt: markdown heading marks and line breaks flattened."""
+    return re.sub(r"\s+", " ", re.sub(r"#+\s*", "", text)).strip()[:SNIPPET_CHARS]
+
+
 CITATION_RE = re.compile(r"\[(POL-[A-Z]+-\d+)(?:\s*:\s*([^\]]+))?\]")
 
 # An LLM turn: takes chat messages + OpenAI-format tool schemas, returns an object with
@@ -129,6 +134,20 @@ class HRAgent:
         if self._stack is not None:
             await self._stack.aclose()
             self._stack = self._session = None
+
+    @property
+    def connected(self) -> bool:
+        return self._session is not None
+
+    async def ping(self, timeout: float = 5.0) -> bool:
+        """True if the MCP server subprocess answers a protocol-level ping."""
+        if self._session is None:
+            return False
+        try:
+            await asyncio.wait_for(self._session.send_ping(), timeout)
+            return True
+        except Exception:
+            return False
 
     @property
     def tool_names(self) -> list[str]:
@@ -283,7 +302,7 @@ class HRAgent:
                     title=chunk["title"],
                     section=chunk["section"],
                     source_file=chunk["source_file"],
-                    snippet=chunk["text"][:SNIPPET_CHARS].strip(),
+                    snippet=_snippet(chunk["text"]),
                 ),
             )
         return list(citations.values())

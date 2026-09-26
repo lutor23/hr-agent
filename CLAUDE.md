@@ -99,11 +99,12 @@ Repo must be shared with GitHub user **`quantic-grader`**.
 - [x] Two multi-step workflows verified live: PTO request (balance + PTO policy sections), out-of-state remote work; plus ticket+email and missing-ID flows
 - [x] `tests/test_agent.py` (14, scripted fake LLM + real MCP server) and extended `test_mcp_tools.py` — 47 tests passing
 
-### 🔲 Day 6 — FastAPI App (Sep 27)
-- [ ] `app/main.py` — FastAPI app + minimal chat UI (spec requires a UI, not just the API)
-- [ ] `POST /chat` with `ChatRequest`/`ChatResponse` (already defined in `app/models.py`)
-- [ ] `GET /health` → `{status, chroma_docs, version}` plus MCP connectivity
-- [ ] Wire agent into `/chat`; 503 if ChromaDB empty
+### ✅ Day 6 — FastAPI App DONE
+- [x] `app/main.py` — `create_app(llm_fn=None)` factory; `uvicorn app.main:app --port 8000`. One long-lived `HRAgent` (one MCP subprocess) started in the lifespan and shared by all requests
+- [x] `POST /chat` → `ChatResponse` (answer, citations+snippets, tools_used, trace, escalated, latency_ms, error). Validation: message 1–2000 chars (422). 503 if index empty or MCP server down; 504 after 90s
+- [x] `GET /health` → `{status, chroma_docs, version, mcp_connected, mcp_tools}`; returns **503** with `status: "degraded"` if index is empty or the MCP ping fails
+- [x] Chat UI at `/` (`app/static/index.html`, no build step): mock employee picker, example prompts for the demo tasks, answer, sources with snippets, tool-trace table, escalation/latency/error badges; verified in a real browser. `GET /employees` (id+name only) feeds the picker
+- [x] `tests/test_api.py` (10 tests, real lifespan + MCP subprocess, scripted LLM) — includes the "app starts" test CI needs
 
 ### 🔲 Day 7 — Tests (Sep 28)
 - [ ] `tests/test_mcp_tools.py`, `tests/test_api.py` (loaders/retriever tests already exist)
@@ -133,6 +134,8 @@ Repo must be shared with GitHub user **`quantic-grader`**.
 | `app/employee_data.py` | Read-only lookups against `mock_data/*.json` |
 | `app/models.py` | Shared `ChatRequest`/`ChatResponse`/`Citation`/`HealthResponse` |
 | `app/config.py` | Env-driven settings |
+| `app/main.py` | FastAPI app + lifespan-managed agent (Day 6, done) |
+| `app/static/index.html` | Chat UI served at `/` |
 | `app/agent.py` | Orchestrator: MCP client + tool-calling loop + trace (Day 5, done) |
 | `mcp/server.py` | MCP tool server, 7 tools (Days 4–5, done); `mcp/_smoke_test.py` manual client check |
 | `corpus/` | 10 policy docs (8 MD, 1 HTML, 1 PDF) |
@@ -155,6 +158,7 @@ cp .env.example .env          # set OPENROUTER_API_KEY
 ```
 
 ## Known Constraints
+- **Memory for Render's free tier (512MB):** two processes run — the web app (light, ~140MB: `count_chunks()` deliberately skips the embedding function so torch never loads here) and the MCP server subprocess (loads torch + MiniLM, several hundred MB). Check real usage on Day 8; if too tight, options are a smaller/ONNX embedding path or loading the model only in the server (already the case).
 - **Agent latency is dominated by the free LLM** (~20-25s for a 2-3 tool question; each LLM turn 3-8s, tools take ms). The p95 <8s eval target is unlikely on this model; the MCP server also loads the embedding model on its first search (~3s). Day 6 should keep one long-lived `HRAgent` (one server subprocess) for the app rather than one per request.
 - Mock tickets live only in the MCP server process's memory (reset when it restarts).
 - **`mcp/` collides with the installed `mcp` SDK package.** The grader requires a top-level `mcp/` dir, but an `mcp/__init__.py` (or dotted-importing `mcp.server`) would shadow the SDK and break `from mcp.server.fastmcp import FastMCP`. So `mcp/` has no `__init__.py`, and `server.py` is only ever run as a script/subprocess (sys.path[0] is then `mcp/` itself, so `import mcp` still finds the SDK). Never import our server by dotted path; spawn it via `StdioServerParameters` like the tests do.

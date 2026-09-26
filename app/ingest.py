@@ -40,6 +40,15 @@ def get_collection(db_path: str = config.CHROMA_PERSIST_DIR):
     )
 
 
+def count_chunks(db_path: str = config.CHROMA_PERSIST_DIR) -> int:
+    """Indexed chunk count (0 if not ingested yet). Deliberately skips the embedding
+    function, so calling it never loads torch/sentence-transformers in this process."""
+    try:
+        return get_client(db_path).get_collection(config.COLLECTION_NAME).count()
+    except Exception:  # collection doesn't exist: ingest hasn't been run
+        return 0
+
+
 def ingest(corpus: str, db_path: str, reset: bool = False) -> int:
     if reset:
         try:

@@ -2,7 +2,7 @@
 
 from typing import Any, List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Citation(BaseModel):
@@ -14,9 +14,9 @@ class Citation(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    message: str
-    employee_id: Optional[str] = None  # e.g. "E001" for personalized answers
-    session_id: Optional[str] = None  # for trace correlation
+    message: str = Field(min_length=1, max_length=2000)
+    employee_id: Optional[str] = Field(default=None, max_length=32)  # e.g. "E001"
+    session_id: Optional[str] = Field(default=None, max_length=64)  # for trace correlation
 
 
 class TraceStep(BaseModel):
@@ -41,6 +41,8 @@ class ChatResponse(BaseModel):
 
 
 class HealthResponse(BaseModel):
-    status: str  # "ok"
+    status: str  # "ok" | "degraded"
     chroma_docs: int  # number of indexed chunks
     version: str
+    mcp_connected: bool = False  # MCP server subprocess answers a ping
+    mcp_tools: int = 0  # tools discovered over MCP

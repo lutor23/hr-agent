@@ -114,6 +114,16 @@ def test_citation_with_extra_detail_still_matches_returned_section():
     assert len(run_agent(llm_fn).citations) == 1
 
 
+def test_citation_snippet_is_plain_text():
+    llm_fn = scripted(
+        calls(tool_call("get_policy_section", doc_id="POL-HR-001", section="PTO Request Process")),
+        final("[POL-HR-001: PTO Request Process]"),
+    )
+    snippet = run_agent(llm_fn).citations[0].snippet
+    assert snippet.startswith("4.1 Standard Requests")
+    assert "#" not in snippet and "\n" not in snippet and len(snippet) <= 240
+
+
 def test_citation_no_tool_returned_is_dropped():
     llm_fn = scripted(
         calls(tool_call("get_policy_section", doc_id="POL-HR-001", section="PTO Request Process")),
