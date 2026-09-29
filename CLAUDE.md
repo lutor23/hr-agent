@@ -113,9 +113,14 @@ Repo must be shared with GitHub user **`quantic-grader`**.
 - [x] Lint: `ruff.toml` + `ruff check .` clean (rules E,F,W,I,B; `corpus/` excluded). `pytest.ini` added. `pytest-cov`, `ruff` pinned in requirements.txt. CI should run `ruff check .` (not `ruff format` — it would rewrite 9 files)
 - Not unit-tested by design: `mcp/server.py` runs in a subprocess so it isn't in the coverage number, but every tool is exercised through it by `test_mcp_tools.py`/`test_agent.py`; live-LLM behaviour (model availability/latency) is never in the suite.
 
-### 🔲 Day 8 — CI/CD & Deployment (Sep 29)
-- [ ] `.github/workflows/ci.yml` — install → app-starts check → tests → deploy only if green
-- [ ] `render.yaml`; push to GitHub (`lutor23/hr-agent`) and **share the repo with `quantic-grader`**
+### 🟡 Day 8 — CI/CD & Deployment IN PROGRESS
+- [x] `.github/workflows/ci.yml`: install (pip, cached) → `ruff check .` → import check → build index (`--reset --smoke`) → **app-starts check** (real `uvicorn` bound to a port, real `curl /health`, asserts `mcp_connected`/`mcp_tools: 7` — not just the in-process TestClient) → `pytest --cov=app`. Deploy job `needs: test`, only on push to main, skips gracefully (not red) if `RENDER_DEPLOY_HOOK_URL` isn't set yet
+- [x] `render.yaml`: free plan, `autoDeploy: false` (CI's deploy hook gates it instead of Render's own git-push trigger), `healthCheckPath: /health`. Ingest runs in `startCommand` (not `buildCommand`) — deliberately, since Render's free-tier build-step resources aren't something to assume without checking, so ingest runs in the same 512MB runtime container the app actually serves from
+- [x] Fixed two drifted config values found while cross-checking these files: `config.py`'s `LLM_MODEL` fallback default was still the Day-3-broken model (only mattered if `.env`/env vars were absent); `.env.example` listed `MCP_TRANSPORT`/`MCP_SERVER_PORT`/`APP_HOST`/`APP_PORT`/`LOG_LEVEL`/`SEED`, none of which any code reads. Added `test_llm.py::test_default_model_matches_env_example_and_render_yaml` so the two files can't silently drift apart again
+- [x] Locally validated the exact app-starts check CI will run (real port bind + curl), not just its intent
+- [ ] **Not yet done — needs your accounts, not just code:** create the Render service from `render.yaml` (render.com/select-repo), set `OPENROUTER_API_KEY` in its dashboard (never committed), copy its Deploy Hook URL into the GitHub repo's `RENDER_DEPLOY_HOOK_URL` secret, push to trigger the first real CI run, then **measure actual memory** on Render (the free-tier 512MB question flagged since Day 6 is still open — nothing here confirms it fits, only that it isn't obviously precluded)
+- [ ] Share the repo with GitHub user `quantic-grader` (repo Settings → Collaborators)
+- [ ] `deployed.md` (deployed URL, `/health` URL, cold-start notes) — needs a real deployment to write truthfully
 
 ### 🔲 Days 9–10 — Evaluation (Sep 30–Oct 1)
 - [ ] `evaluation/eval_set.json` — 20–30 Q&As (straightforward, multi-doc, tool-requiring, ambiguous, out-of-scope)
@@ -144,6 +149,8 @@ Repo must be shared with GitHub user **`quantic-grader`**.
 | `corpus/` | 10 policy docs (8 MD, 1 HTML, 1 PDF) |
 | `mock_data/` | Mock employees, PTO balances, benefits |
 | `evaluation/` | Eval set + metrics runner (Day 9–10, not yet created) |
+| `.github/workflows/ci.yml` | CI: lint, import/start checks, tests, gated deploy (Day 8, workflow written; not yet run for real) |
+| `render.yaml` | Render blueprint (Day 8, written; service not yet created) |
 
 ## Environment
 

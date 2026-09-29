@@ -25,5 +25,7 @@ MOCK_DATA_DIR = ROOT / "mock_data"
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
-LLM_MODEL = os.getenv("LLM_MODEL", "meta-llama/llama-3.1-8b-instruct:free")
+# Default matches .env.example / render.yaml. OpenRouter's free-tier slugs churn (see
+# CLAUDE.md Day 3/Day 8); if this starts 404ing, check GET /api/v1/models for a live one.
+LLM_MODEL = os.getenv("LLM_MODEL", "nvidia/nemotron-3-super-120b-a12b:free")
 LLM_TIMEOUT_S = 30.0
