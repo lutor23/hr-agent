@@ -259,6 +259,28 @@ def test_default_llm_sends_model_messages_and_tools(monkeypatch):
     assert seen["tools"] == [{"type": "function"}] and seen["messages"][0]["content"] == "hi"
 
 
+def test_default_llm_raises_on_a_choices_null_response(monkeypatch):
+    """Observed for real in production: OpenRouter's free tier can return HTTP 200
+    with `choices: null` in the body (an upstream provider hiccup, not a 4xx/5xx the
+    openai client would raise as APIError on its own). Before this check, that
+    crashed a live /chat request with an unhandled TypeError."""
+
+    async def create(**kwargs):
+        return SimpleNamespace(choices=None)
+
+    fake_client = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
+    monkeypatch.setattr(agent_module.llm, "get_async_client", lambda: fake_client)
+    with pytest.raises(agent_module.LLMResponseError):
+        asyncio.run(agent_module.default_llm([{"role": "user", "content": "hi"}], []))
+
+
+def test_a_choices_null_response_degrades_gracefully_not_a_crash():
+    """End-to-end version of the above, through HRAgent.run() - the same graceful
+    answer other LLM failures (timeout, APIError) already get, not a 500."""
+    r = run_agent(scripted(agent_module.LLMResponseError("OpenRouter returned no choices: ...")))
+    assert r.error == "LLMResponseError" and "try again" in r.answer
+
+
 def test_cli_prints_answer_citations_and_trace(monkeypatch, capfd):  # capfd: the MCP subprocess needs a real stderr fd
     llm_fn = scripted(
         calls(tool_call("get_policy_section", doc_id="POL-HR-001", section="PTO Request Process")),

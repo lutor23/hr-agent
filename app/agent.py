@@ -108,10 +108,24 @@ CITATION_RE = re.compile(r"\[(POL-[A-Z]+-\d+)(?:\s*:\s*([^\]]+))?\]")
 LLMFn = Callable[[list[dict], list[dict]], Awaitable[Any]]
 
 
+class LLMResponseError(RuntimeError):
+    """Raised when the LLM API returns HTTP 200 but a response with no usable choice.
+
+    Observed for real on OpenRouter's free tier: an upstream provider hiccup can come
+    back as 200 OK with `choices: null` in the body instead of a 4xx/5xx the openai
+    client would raise as APIError. Caught the same way as APITimeoutError/APIError
+    in HRAgent.run() below - without this, it crashed a live request with an
+    unhandled TypeError ('NoneType' object is not subscriptable) instead of the
+    graceful "couldn't reach the language model" answer other LLM failures already get.
+    """
+
+
 async def default_llm(messages: list[dict], tools: list[dict]) -> Any:
     completion = await llm.get_async_client().chat.completions.create(
         model=config.LLM_MODEL, messages=messages, tools=tools, temperature=0
     )
+    if not completion.choices:
+        raise LLMResponseError(f"OpenRouter returned no choices: {completion!r}")
     return completion.choices[0].message
 
 
@@ -260,7 +274,7 @@ class HRAgent:
         for _ in range(self._max_steps + 1):
             try:
                 reply = await self._llm(messages, self._tools)
-            except (APITimeoutError, APIError) as exc:
+            except (APITimeoutError, APIError, LLMResponseError) as exc:
                 log.warning(json.dumps({"session_id": session_id, "event": "llm_error", "error": str(exc)[:200]}))
                 return finish(
                     "I couldn't reach the language model just now. Please try again in a moment.",
