@@ -12,11 +12,19 @@ services:
     branch: main
     autoDeploy: false
     buildCommand: pip install -r requirements.txt
-    # Ingest runs here (not in buildCommand) so it executes in the same 512MB runtime
-    # container the app will actually run in - Render's build-step resources aren't
-    # something to assume without checking. Adds a few seconds to every cold start;
-    # see CLAUDE.md Day 8 for the open question of whether it fits in 512MB at all.
-    startCommand: python -m app.ingest --reset && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    # Ingest is NOT a startCommand pre-step: `X && uvicorn ...` doesn't start uvicorn
+    # (so no port opens) until X finishes, and uvicorn itself binds its socket only
+    # after its own lifespan-startup handler returns. Embedding the corpus (loading
+    # sentence-transformers, downloading the ~90MB model with no persistent disk to
+    # cache it, embedding ~100 chunks) on free-tier CPU routinely exceeds Render's
+    # port-scan timeout, which previously failed every deploy with "no open ports
+    # detected". app/main.py's lifespan instead fires the index build as a
+    # background asyncio task it never awaits, so uvicorn binds the port immediately;
+    # /health reports {"status": "degraded"} (503) until that background build
+    # finishes, same as it always has for an empty index. This still exercises the
+    # real 512MB runtime container per the note below - it just no longer blocks
+    # the port from opening while doing so.
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
       - key: OPENROUTER_API_KEY

@@ -76,6 +76,11 @@ def test_employee_can_only_access_own_records_via_api():
 
 def test_empty_index_gives_503_on_chat_and_degraded_health(monkeypatch):
     monkeypatch.setattr(main, "count_chunks", lambda *a, **k: 0)
+    # Without this, the lifespan's background build task would see the same
+    # patched count_chunks() == 0 and kick off a real (destructive, several-second)
+    # re-embed against the on-disk index every other test shares. This test is only
+    # about the empty-index response, not the build task, so stub it out.
+    monkeypatch.setattr(main, "_build_index_if_empty", lambda: asyncio.sleep(0))
     with client() as c:
         chat = c.post("/chat", json={"message": "hi"})
         health = c.get("/health")

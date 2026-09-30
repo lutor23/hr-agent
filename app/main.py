@@ -20,6 +20,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from app import config, employee_data
 from app.agent import HRAgent, LLMFn
 from app.ingest import count_chunks
+from app.ingest import ingest as build_index
 from app.models import ChatRequest, ChatResponse, HealthResponse
 
 VERSION = "0.1.0"
@@ -39,6 +40,31 @@ def _enable_trace_logging() -> None:
     trace_log.propagate = False
 
 
+async def _build_index_if_empty() -> None:
+    """Embed the corpus in the background if the index is empty.
+
+    Fire-and-forget from the lifespan (never awaited there): uvicorn binds the
+    listening socket only *after* the lifespan startup handler returns (it awaits
+    `lifespan.startup()` before `loop.create_server(...)` — see Server.startup() in
+    uvicorn/server.py), so anything awaited during startup, including this, would
+    delay the port opening. On Render's free tier there's no persistent disk, so
+    every cold start's Chroma collection starts empty and re-embeds the ~30-120
+    page corpus from scratch; that can take well over Render's port-scan timeout,
+    which previously made `startCommand` do this as a blocking pre-step and the
+    deploy fail with "no open ports detected". Running it here lets the port open
+    immediately; /health reports "degraded" (chroma_docs == 0) and /chat 503s until
+    this finishes, which is exactly the state those endpoints were already built
+    to report.
+    """
+    try:
+        if await asyncio.to_thread(count_chunks) == 0:
+            log.info("Policy index is empty; building it in the background")
+            n = await asyncio.to_thread(build_index, str(config.CORPUS_DIR), config.CHROMA_PERSIST_DIR, True)
+            log.info("Policy index built: %d chunks indexed", n)
+    except Exception as exc:  # /health keeps reporting degraded; nothing else to do
+        log.error("Background index build failed: %s: %s", type(exc).__name__, exc)
+
+
 def create_app(llm_fn: Optional[LLMFn] = None) -> FastAPI:
     """App factory. `llm_fn` swaps the agent's LLM (tests use a scripted fake)."""
 
@@ -53,6 +79,9 @@ def create_app(llm_fn: Optional[LLMFn] = None) -> FastAPI:
         except Exception as exc:  # app still starts; /health reports degraded, /chat 503s
             app.state.startup_error = f"{type(exc).__name__}: {exc}"
             log.error("MCP server failed to start: %s", app.state.startup_error)
+        # Not awaited: see _build_index_if_empty's docstring for why. Kept on
+        # app.state so the task isn't garbage-collected mid-flight.
+        app.state.index_task = asyncio.create_task(_build_index_if_empty())
         try:
             yield
         finally:
@@ -82,7 +111,11 @@ def create_app(llm_fn: Optional[LLMFn] = None) -> FastAPI:
     async def chat(req: ChatRequest) -> ChatResponse:
         agent: HRAgent = app.state.agent
         if await asyncio.to_thread(count_chunks) == 0:
-            raise HTTPException(503, "The policy index is empty. Run `python -m app.ingest --reset` first.")
+            raise HTTPException(
+                503,
+                "The policy index isn't ready yet (it builds in the background on startup; "
+                "locally, run `python -m app.ingest --reset`). Try again shortly.",
+            )
         if not await agent.ping():
             raise HTTPException(503, "The MCP tool server is unavailable. Try again shortly.")
         try:
