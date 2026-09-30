@@ -2,6 +2,7 @@
 
 import subprocess
 import sys
+import threading
 
 import pytest
 
@@ -44,18 +45,59 @@ def test_count_chunks_is_zero_before_ingest(tmp_path):
     assert ingest.count_chunks(str(tmp_path / "never_ingested")) == 0
 
 
-def test_count_chunks_does_not_load_torch_in_the_web_process(tmp_path):
-    """The web process must stay light (free-tier memory): counting must never pull in
-    torch/sentence-transformers. Checked in a fresh interpreter, since this one has them."""
-    code = (
-        "import sys\n"
-        "from app.ingest import count_chunks\n"
-        f"count_chunks({str(tmp_path / 'x')!r})\n"
-        "loaded = [m for m in ('torch', 'sentence_transformers') if m in sys.modules]\n"
-        "assert not loaded, loaded\n"
-    )
-    result = subprocess.run([sys.executable, "-c", code], cwd=config.ROOT, capture_output=True, text=True)
-    assert result.returncode == 0, result.stderr[-500:]
+def test_count_chunks_never_constructs_the_embedding_function(monkeypatch, tmp_path):
+    """The FastAPI process must stay light (free-tier memory): counting must never
+    construct the embedding function, which is what loads the ~300MB+ ONNX model.
+    (Checking sys.modules for 'onnxruntime' wouldn't prove anything here: `import
+    chromadb` alone already imports it as chromadb's own internal side effect,
+    regardless of what count_chunks() does - confirmed directly, not assumed. The
+    real guarantee is that the expensive constructor is never called.)"""
+    calls = []
+    monkeypatch.setattr(ingest, "get_embedding_function", lambda: calls.append(1))
+    ingest.count_chunks(str(tmp_path / "never_ingested_2"))
+    assert calls == []
+
+
+class TestGetReadyCollection:
+    """get_ready_collection() is the only thing allowed to load the embedding runtime
+    (only app/retriever.py, i.e. only the MCP server subprocess, calls it) - see its
+    docstring in app/ingest.py for why that matters."""
+
+    def test_builds_an_empty_index_lazily(self, tmp_path, expected_count):
+        path = str(tmp_path / "lazy")
+        assert ingest.count_chunks(path) == 0
+        collection = ingest.get_ready_collection(path)
+        assert collection.count() == expected_count == ingest.count_chunks(path)
+
+    def test_does_not_rebuild_an_already_populated_index(self, db, monkeypatch):
+        calls = []
+        monkeypatch.setattr(ingest, "ingest", lambda *a, **k: calls.append(1))
+        ingest.get_ready_collection(db)
+        assert calls == []  # `db` fixture already has data; must not re-embed it
+
+    def test_concurrent_first_calls_build_exactly_once(self, tmp_path, expected_count):
+        """Two /chat requests can race to the MCP session on a still-empty index at
+        once (tests/test_agent.py proves the agent supports concurrent requests over
+        one shared session) - the lock must serialize them, not double-build."""
+        path = str(tmp_path / "race")
+        real_ingest, call_count = ingest.ingest, []
+        lock = threading.Lock()
+
+        def counted_ingest(*a, **k):
+            with lock:
+                call_count.append(1)
+            return real_ingest(*a, **k)
+
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(ingest, "ingest", counted_ingest)
+            threads = [threading.Thread(target=ingest.get_ready_collection, args=(path,)) for _ in range(5)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
+
+        assert len(call_count) == 1
+        assert ingest.count_chunks(path) == expected_count
 
 
 def test_smoke_queries_all_hit_their_expected_document(db, capsys):

@@ -4,6 +4,13 @@
 
 One long-lived HRAgent (one MCP server subprocess) is started with the app and shared
 by all requests, so the embedding model is loaded once instead of once per question.
+
+This process never loads the embedding model itself (only `count_chunks()`, which
+skips it) - the MCP server subprocess owns that (mcp/server.py, app/ingest.py's
+get_ready_collection()). Loading it in both processes at once - this one eagerly at
+startup, the MCP subprocess again on its first search - is what OOM-killed the first
+real Render deploy on its 512MB limit: two independent onnxruntime sessions running
+at once. See CLAUDE.md's Day 8 entry for the measurements behind that.
 """
 
 from __future__ import annotations
@@ -20,7 +27,6 @@ from fastapi.responses import FileResponse, JSONResponse
 from app import config, employee_data
 from app.agent import HRAgent, LLMFn
 from app.ingest import count_chunks
-from app.ingest import ingest as build_index
 from app.models import ChatRequest, ChatResponse, HealthResponse
 
 VERSION = "0.1.0"
@@ -40,31 +46,6 @@ def _enable_trace_logging() -> None:
     trace_log.propagate = False
 
 
-async def _build_index_if_empty() -> None:
-    """Embed the corpus in the background if the index is empty.
-
-    Fire-and-forget from the lifespan (never awaited there): uvicorn binds the
-    listening socket only *after* the lifespan startup handler returns (it awaits
-    `lifespan.startup()` before `loop.create_server(...)` — see Server.startup() in
-    uvicorn/server.py), so anything awaited during startup, including this, would
-    delay the port opening. On Render's free tier there's no persistent disk, so
-    every cold start's Chroma collection starts empty and re-embeds the ~30-120
-    page corpus from scratch; that can take well over Render's port-scan timeout,
-    which previously made `startCommand` do this as a blocking pre-step and the
-    deploy fail with "no open ports detected". Running it here lets the port open
-    immediately; /health reports "degraded" (chroma_docs == 0) and /chat 503s until
-    this finishes, which is exactly the state those endpoints were already built
-    to report.
-    """
-    try:
-        if await asyncio.to_thread(count_chunks) == 0:
-            log.info("Policy index is empty; building it in the background")
-            n = await asyncio.to_thread(build_index, str(config.CORPUS_DIR), config.CHROMA_PERSIST_DIR, True)
-            log.info("Policy index built: %d chunks indexed", n)
-    except Exception as exc:  # /health keeps reporting degraded; nothing else to do
-        log.error("Background index build failed: %s: %s", type(exc).__name__, exc)
-
-
 def create_app(llm_fn: Optional[LLMFn] = None) -> FastAPI:
     """App factory. `llm_fn` swaps the agent's LLM (tests use a scripted fake)."""
 
@@ -79,9 +60,9 @@ def create_app(llm_fn: Optional[LLMFn] = None) -> FastAPI:
         except Exception as exc:  # app still starts; /health reports degraded, /chat 503s
             app.state.startup_error = f"{type(exc).__name__}: {exc}"
             log.error("MCP server failed to start: %s", app.state.startup_error)
-        # Not awaited: see _build_index_if_empty's docstring for why. Kept on
-        # app.state so the task isn't garbage-collected mid-flight.
-        app.state.index_task = asyncio.create_task(_build_index_if_empty())
+        # No index-building here: the MCP server subprocess owns that (see the
+        # module docstring). agent.connect() above only starts it; it builds its own
+        # index concurrently with serving requests (mcp/server.py's _serve()).
         try:
             yield
         finally:
@@ -110,12 +91,10 @@ def create_app(llm_fn: Optional[LLMFn] = None) -> FastAPI:
     @app.post("/chat", response_model=ChatResponse)
     async def chat(req: ChatRequest) -> ChatResponse:
         agent: HRAgent = app.state.agent
-        if await asyncio.to_thread(count_chunks) == 0:
-            raise HTTPException(
-                503,
-                "The policy index isn't ready yet (it builds in the background on startup; "
-                "locally, run `python -m app.ingest --reset`). Try again shortly.",
-            )
+        # No count_chunks() gate here (there was one): an empty index is no longer a
+        # hard failure. The MCP server builds it lazily+locked on first real search
+        # (app/ingest.py's get_ready_collection()), so the request just takes a bit
+        # longer once, well inside CHAT_TIMEOUT_S, instead of failing outright.
         if not await agent.ping():
             raise HTTPException(503, "The MCP tool server is unavailable. Try again shortly.")
         try:

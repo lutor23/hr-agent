@@ -11,7 +11,7 @@ from typing import List, Optional
 from openai import APIError, APITimeoutError
 
 from app import config, employee_data, llm
-from app.ingest import get_collection
+from app.ingest import get_ready_collection
 from app.loaders import Chunk
 from app.models import ChatResponse, Citation
 
@@ -43,7 +43,7 @@ def retrieve(
 
     Results come from across all documents unless doc_id restricts the search.
     """
-    collection = get_collection()
+    collection = get_ready_collection()
     res = collection.query(
         query_texts=[query],
         n_results=top_k,
@@ -68,7 +68,7 @@ def get_section(doc_id: str, section: str) -> Optional[dict]:
     fetching a specific section an agent already knows the name of (e.g. after
     search_policy_documents surfaced it). Returns None if no chunk matches.
     """
-    collection = get_collection()
+    collection = get_ready_collection()
     res = collection.get(where={"doc_id": doc_id}, include=["documents", "metadatas"])
     matches = [
         (meta, doc.split("\n", 1)[1] if "\n" in doc else doc)

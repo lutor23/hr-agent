@@ -4,13 +4,13 @@ Usage: python -m app.ingest [--corpus ./corpus] [--db ./chroma_db] [--reset] [--
 """
 
 import argparse  # noqa: I001  (import order below is deliberate)
+import threading
 
 # app.config must be imported BEFORE chromadb: it sets ANONYMIZED_TELEMETRY=False,
 # which chromadb reads at import time. Do not let an import sorter reorder this block.
 from app import config
 import chromadb
 from chromadb.config import Settings
-from chromadb.utils import embedding_functions
 
 from app.loaders import load_corpus
 
@@ -23,10 +23,33 @@ SMOKE_QUERIES = {
 }
 
 
+# Chunks embedded per upsert() call during ingest. The first real Render deploy was
+# OOM-killed (512Mi limit) embedding all 97 chunks in one batch: measured locally,
+# batch=97 peaks near 900MB regardless of embedding library, because onnxruntime's/
+# torch's scratch memory for a batch scales with its size. Below batch=4 the peak
+# stops shrinking much (~300MB floor: onnxruntime's own fixed overhead) - so 4 is
+# picked for reasonable ingest speed, not because it's the minimum. Not user
+# -configurable: this is a memory-budget constant, not a deployment setting.
+INGEST_BATCH_SIZE = 4
+
+
 def get_embedding_function():
-    return embedding_functions.SentenceTransformerEmbeddingFunction(
-        model_name=config.EMBEDDING_MODEL
-    )
+    # Imported here, not at module level: chromadb.utils.embedding_functions pulls in
+    # onnxruntime as an import-time side effect regardless of which class you use, so
+    # a top-level import would load it even in count_chunks()'s codepath, which must
+    # not (see count_chunks()'s docstring). Deferring the import to inside this
+    # function, which only get_collection() calls, keeps that guarantee.
+    from chromadb.utils import embedding_functions
+
+    # ONNXMiniLM_L6_V2 (bundled with chromadb) implements the same all-MiniLM-L6-v2
+    # model as SentenceTransformerEmbeddingFunction, but via onnxruntime instead of
+    # torch: no torch/sentence-transformers import, ~330MB lower baseline RSS
+    # (measured: torch construction alone uses ~470MB before embedding anything; the
+    # first real Render deploy needed every MB of that back to fit in 512Mi). CPU
+    # provider is forced explicitly rather than auto-detected, since auto-detection
+    # can pick a provider (e.g. CoreML on Apple Silicon) with very different, even
+    # unbounded-looking, memory behavior from what a Linux deploy target will use.
+    return embedding_functions.ONNXMiniLM_L6_V2(preferred_providers=["CPUExecutionProvider"])
 
 
 def get_client(db_path: str = config.CHROMA_PERSIST_DIR):
@@ -34,17 +57,69 @@ def get_client(db_path: str = config.CHROMA_PERSIST_DIR):
     return chromadb.PersistentClient(path=db_path, settings=Settings(anonymized_telemetry=False))
 
 
+# get_collection()'s cache (below) and get_ready_collection()'s build-once check both
+# need one shared Collection object per db_path, not a fresh one per call — two
+# *separate* chromadb Collection/PersistentClient instances against the same on-disk
+# path aren't guaranteed to see each other's writes immediately (a second instance's
+# .count() can still read stale/0 right after a first instance's .upsert() commits),
+# which let concurrent get_ready_collection() calls each pass their empty-index check
+# and both call ingest() — caught by a concurrency test, not by inspection. One shared
+# object removes the cross-instance staleness question entirely: every caller reads
+# and writes through the exact same in-memory Collection. The lock protects the
+# cache's construction (get_collection) and the check-and-build (get_ready_collection)
+# across threads; it's a plain threading.Lock rather than an asyncio one because
+# FastMCP calls sync tools directly on the event loop (confirmed in its source - no
+# threadpool) while mcp/server.py's background build runs via anyio.to_thread, a real
+# OS thread, so the lock has to work correctly across both.
+_collection_cache: dict[str, "chromadb.api.models.Collection.Collection"] = {}
+# RLock, not Lock: get_ready_collection() holds this while calling ingest(), which
+# itself calls get_collection() (to (re)fetch the collection it upserts into), which
+# acquires this same lock again - on the same thread, since neither anyio.to_thread
+# nor FastMCP's direct sync-tool dispatch hands the call to a different thread partway
+# through. A plain Lock would deadlock there; RLock allows a thread to re-enter a lock
+# it already holds.
+_cache_lock = threading.RLock()
+
+
 def get_collection(db_path: str = config.CHROMA_PERSIST_DIR):
-    return get_client(db_path).get_or_create_collection(
-        name=config.COLLECTION_NAME,
-        embedding_function=get_embedding_function(),
-        metadata={"hnsw:space": "cosine"},
-    )
+    """Loads the embedding function in THIS process (once; cached per db_path after
+    that). Called by ingest()/smoke() (which are meant to load it) and by
+    get_ready_collection() below. Don't call this from the FastAPI process
+    (app/main.py) — use count_chunks() there, which never loads it at all."""
+    with _cache_lock:
+        if db_path not in _collection_cache:
+            _collection_cache[db_path] = get_client(db_path).get_or_create_collection(
+                name=config.COLLECTION_NAME,
+                embedding_function=get_embedding_function(),
+                metadata={"hnsw:space": "cosine"},
+            )
+        return _collection_cache[db_path]
+
+
+def get_ready_collection(db_path: str = config.CHROMA_PERSIST_DIR):
+    """get_collection(), auto-ingesting first if the index is empty.
+
+    Only app/retriever.py (i.e. only the MCP server subprocess) calls this. That
+    keeps embedding-model ownership in exactly one process: the FastAPI process
+    (app/main.py) never loads it at all, it only ever calls count_chunks() below.
+    Loading it in *both* processes (FastAPI eagerly at startup, MCP subprocess
+    lazily on first search) is what OOM-killed the first real Render deploy — two
+    independent onnxruntime sessions at once, each with the same ~150-200MB
+    overhead, on top of each process's own baseline.
+    """
+    collection = get_collection(db_path)
+    if collection.count() == 0:
+        with _cache_lock:
+            if collection.count() == 0:  # re-check: another caller may have just built it
+                ingest(str(config.CORPUS_DIR), db_path)
+    return collection
 
 
 def count_chunks(db_path: str = config.CHROMA_PERSIST_DIR) -> int:
     """Indexed chunk count (0 if not ingested yet). Deliberately skips the embedding
-    function, so calling it never loads torch/sentence-transformers in this process."""
+    function, so calling it never loads onnxruntime in this process. This is the
+    ONLY ingest.py function app/main.py (the FastAPI process) may call — see
+    get_ready_collection()'s docstring for why."""
     try:
         return get_client(db_path).get_collection(config.COLLECTION_NAME).count()
     except Exception:  # collection doesn't exist: ingest hasn't been run
@@ -57,13 +132,22 @@ def ingest(corpus: str, db_path: str, reset: bool = False) -> int:
             get_client(db_path).delete_collection(config.COLLECTION_NAME)
         except Exception:
             pass  # collection did not exist yet
+        # Drop the cached Collection object too: it still refers to whatever was just
+        # deleted, and get_collection() would otherwise hand callers that stale object
+        # instead of building a fresh one against the (now empty or nonexistent) store.
+        with _cache_lock:
+            _collection_cache.pop(db_path, None)
     collection = get_collection(db_path)
     chunks = load_corpus(corpus)
-    collection.upsert(
-        ids=[c.chunk_id for c in chunks],
-        documents=[c.embed_text for c in chunks],
-        metadatas=[c.metadata() for c in chunks],
-    )
+    # Batched (see INGEST_BATCH_SIZE) rather than one upsert() for the whole corpus:
+    # embedding a large batch in one call is what OOM-killed the first real deploy.
+    for i in range(0, len(chunks), INGEST_BATCH_SIZE):
+        batch = chunks[i : i + INGEST_BATCH_SIZE]
+        collection.upsert(
+            ids=[c.chunk_id for c in batch],
+            documents=[c.embed_text for c in batch],
+            metadatas=[c.metadata() for c in batch],
+        )
     return collection.count()
 
 

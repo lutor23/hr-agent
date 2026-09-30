@@ -3,15 +3,13 @@ fastapi==0.115.0
 uvicorn[standard]==0.30.6
 
 # RAG & embeddings
+# Embeddings use chromadb's bundled ONNXMiniLM_L6_V2 (onnxruntime), not
+# sentence-transformers/torch: see app/ingest.py's get_embedding_function() docstring
+# for why (torch's ~470MB baseline OOM-killed the first real Render deploy).
 chromadb==0.5.15
-sentence-transformers==3.1.1
-langchain==0.3.7
-langchain-community==0.3.7
-langchain-huggingface==0.1.2
 
 # Document parsing
 pymupdf==1.24.11          # PDF parsing
-markdown==3.7
 beautifulsoup4==4.12.3
 lxml==5.3.0
 
@@ -25,7 +23,6 @@ mcp==1.2.0
 # Utilities
 python-dotenv==1.0.1
 pydantic==2.10.6
-tqdm==4.66.5
 numpy==1.26.4
 
 # Testing

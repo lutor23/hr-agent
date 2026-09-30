@@ -23,9 +23,11 @@ from pathlib import Path
 # sys.path automatically — add it to import the app package.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from mcp.server.fastmcp import FastMCP  # noqa: E402  (must follow sys.path fix)
+import anyio  # noqa: E402  (must follow sys.path fix)
+from mcp.server.fastmcp import FastMCP  # noqa: E402
 
 from app import config, employee_data, llm  # noqa: E402
+from app.ingest import count_chunks, get_ready_collection  # noqa: E402
 from app.retriever import get_section, retrieve  # noqa: E402
 
 mcp = FastMCP("hr-policy-assistant")
@@ -174,5 +176,29 @@ def draft_hr_email(to: str, subject: str, context: str) -> dict:
     return {"to": to, "subject": subject, "body": body, "sent": False, "llm_generated": generated}
 
 
+async def _build_index_in_background() -> None:
+    """Embed the corpus here if it's empty, concurrently with serving requests.
+
+    Run in a background thread (anyio.to_thread, not just an asyncio task) because
+    embedding is synchronous CPU-bound work: on the *same* thread it would block this
+    process's single event loop, delaying the stdio handshake the same way ingest
+    once delayed FastAPI's port bind (see app/main.py's git history / CLAUDE.md Day
+    8). Off the main thread, `initialize()`/`list_tools()` answer immediately while
+    this runs, and get_ready_collection()'s lock keeps this safe if a real tool call
+    also lands on the still-empty index before this finishes.
+    """
+    try:
+        if await anyio.to_thread.run_sync(count_chunks) == 0:
+            await anyio.to_thread.run_sync(get_ready_collection)
+    except Exception as exc:  # a later real tool call will just retry via get_ready_collection
+        print(f"Background index build failed: {type(exc).__name__}: {exc}", file=sys.stderr)
+
+
+async def _serve() -> None:
+    async with anyio.create_task_group() as tg:
+        tg.start_soon(_build_index_in_background)
+        await mcp.run_stdio_async()
+
+
 if __name__ == "__main__":
-    mcp.run(transport="stdio")
+    anyio.run(_serve)

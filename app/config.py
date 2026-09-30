@@ -18,7 +18,9 @@ logging.getLogger("chromadb.telemetry.product.posthog").setLevel(logging.CRITICA
 
 COLLECTION_NAME = "hr_policies"
 
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
+# No EMBEDDING_MODEL setting: the embedding model (all-MiniLM-L6-v2, via chromadb's
+# bundled ONNXMiniLM_L6_V2) is fixed by that class, not configurable — see
+# app/ingest.py's get_embedding_function().
 CHROMA_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", str(ROOT / "chroma_db"))
 CORPUS_DIR = ROOT / "corpus"
 MOCK_DATA_DIR = ROOT / "mock_data"

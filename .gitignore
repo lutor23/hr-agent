@@ -14,6 +14,11 @@ chroma_data/
 *.log
 logs/
 
+# locally installed Render agent skills
+.agents/skills/render-*/
+.openclaw/skills/render-*/
+.claude/
+
 # editor / OS
 .vscode/
 .idea/

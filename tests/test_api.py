@@ -74,19 +74,22 @@ def test_employee_can_only_access_own_records_via_api():
     assert body["trace"][0]["ok"] is False and body["trace"][0]["result_summary"] == "error: not_authorized"
 
 
-def test_empty_index_gives_503_on_chat_and_degraded_health(monkeypatch):
+def test_health_reports_degraded_for_an_empty_index(monkeypatch):
     monkeypatch.setattr(main, "count_chunks", lambda *a, **k: 0)
-    # Without this, the lifespan's background build task would see the same
-    # patched count_chunks() == 0 and kick off a real (destructive, several-second)
-    # re-embed against the on-disk index every other test shares. This test is only
-    # about the empty-index response, not the build task, so stub it out.
-    monkeypatch.setattr(main, "_build_index_if_empty", lambda: asyncio.sleep(0))
     with client() as c:
-        chat = c.post("/chat", json={"message": "hi"})
         health = c.get("/health")
-    assert chat.status_code == 503 and "ingest" in chat.json()["detail"]
     assert health.status_code == 503
     assert health.json()["status"] == "degraded" and health.json()["chroma_docs"] == 0
+
+
+def test_chat_does_not_require_the_index_to_be_prebuilt(monkeypatch):
+    """/chat no longer gates on count_chunks(): an empty index is the MCP server
+    subprocess's problem to self-heal (app/ingest.get_ready_collection, tested in
+    test_ingest.py), not a reason for the FastAPI process to refuse the request."""
+    monkeypatch.setattr(main, "count_chunks", lambda *a, **k: 0)
+    with client() as c:
+        r = c.post("/chat", json={"message": "hi"})
+    assert r.status_code == 200
 
 
 def test_mcp_server_down_gives_503_and_degraded_health(monkeypatch):

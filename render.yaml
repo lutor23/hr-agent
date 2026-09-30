@@ -14,17 +14,26 @@ services:
     buildCommand: pip install -r requirements.txt
     # Ingest is NOT a startCommand pre-step: `X && uvicorn ...` doesn't start uvicorn
     # (so no port opens) until X finishes, and uvicorn itself binds its socket only
-    # after its own lifespan-startup handler returns. Embedding the corpus (loading
-    # sentence-transformers, downloading the ~90MB model with no persistent disk to
-    # cache it, embedding ~100 chunks) on free-tier CPU routinely exceeds Render's
-    # port-scan timeout, which previously failed every deploy with "no open ports
-    # detected". app/main.py's lifespan instead fires the index build as a
-    # background asyncio task it never awaits, so uvicorn binds the port immediately;
-    # /health reports {"status": "degraded"} (503) until that background build
-    # finishes, same as it always has for an empty index. This still exercises the
-    # real 512MB runtime container per the note below - it just no longer blocks
-    # the port from opening while doing so.
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    # after its own lifespan-startup handler returns. On free-tier CPU with no
+    # persistent disk (every cold start re-embeds the corpus from scratch), that
+    # routinely exceeded Render's port-scan timeout - first real deploy failed with
+    # "no open ports detected". Fix: the FastAPI process never ingests at all;
+    # mcp/server.py's subprocess builds the index itself, concurrently with serving
+    # requests, so nothing here blocks the port from opening.
+    #
+    # A second, separate failure ("Out of memory, used over 512Mi") showed up once
+    # the port-bind issue was fixed: app/main.py's lifespan was *also* eagerly
+    # building the index in the FastAPI process, while the MCP subprocess
+    # independently built its own copy on first search - two full onnxruntime
+    # sessions live at once. Fix: only the MCP subprocess ever loads the embedding
+    # model now (app/ingest.py's get_ready_collection(), used only from
+    # app/retriever.py); the FastAPI process only ever calls the lightweight
+    # count_chunks(). See CLAUDE.md's Day 8 entry for the measurements.
+    # --loop asyncio --http h11: uvicorn[standard] auto-picks uvloop/httptools when
+    # installed, which measured ~20MB higher RSS for no benefit this app needs
+    # (uvloop/httptools are throughput optimizations; a low-traffic demo API on a
+    # memory-constrained free tier should trade that for the lower baseline instead).
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --loop asyncio --http h11
     healthCheckPath: /health
     envVars:
       - key: OPENROUTER_API_KEY
@@ -33,8 +42,6 @@ services:
         value: https://openrouter.ai/api/v1
       - key: LLM_MODEL
         value: nvidia/nemotron-3-super-120b-a12b:free # check this is still live; see CLAUDE.md
-      - key: EMBEDDING_MODEL
-        value: all-MiniLM-L6-v2
       - key: CHROMA_PERSIST_DIR
         value: /opt/render/project/src/chroma_db
       - key: PYTHON_VERSION
