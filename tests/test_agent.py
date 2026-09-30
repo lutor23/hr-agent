@@ -338,3 +338,102 @@ def test_ping_is_false_when_the_server_stops_answering():
             return await agent.ping(timeout=0.2)
 
     assert asyncio.run(go()) is False
+
+
+# --- MCP_TRANSPORT="inmemory" (used only by the deployed Render instance - see
+# CLAUDE.md's Day 8 entry and app/agent.py's module docstring for why): the same
+# behaviors as above, but proving the in-process transport path is genuinely
+# functional end to end, not just that it type-checks. ---------------------------
+
+
+def test_inmemory_transport_discovers_all_seven_tools():
+    async def go():
+        async with HRAgent(llm_fn=scripted(), transport="inmemory") as agent:
+            return agent.tool_names
+
+    assert set(asyncio.run(go())) == {
+        "search_policy_documents", "get_policy_section", "lookup_employee_profile",
+        "check_pto_balance", "lookup_benefits_status", "create_mock_hr_ticket", "draft_hr_email",
+    }
+
+
+def test_inmemory_transport_does_not_spawn_a_subprocess(monkeypatch):
+    def fail_if_called(*a, **k):
+        raise AssertionError("inmemory transport must not spawn mcp/server.py as a subprocess")
+
+    monkeypatch.setattr("app.agent.stdio_client", fail_if_called)
+    r = run_agent(scripted(final("ok")), transport="inmemory")
+    assert r.answer == "ok"
+
+
+def test_inmemory_transport_runs_a_real_multi_step_workflow():
+    """Same workflow as test_multi_step_workflow_pto_balance_then_policy, over the
+    in-process transport: real tool calls, real retrieval, real citation checking."""
+    llm_fn = scripted(
+        calls(tool_call("check_pto_balance", employee_id="E001")),
+        calls(tool_call("get_policy_section", doc_id="POL-HR-001", section="PTO Request Process")),
+        final("You have 96h. Extended leave needs department head approval "
+              "[POL-HR-001: PTO Request Process]."),
+    )
+    r = run_agent(llm_fn, "Can I take two weeks off?", employee_id="E001", transport="inmemory")
+
+    assert [s.tool for s in r.trace] == ["check_pto_balance", "get_policy_section"]
+    assert all(s.ok for s in r.trace)
+    assert [(c.doc_id, c.section) for c in r.citations] == [("POL-HR-001", "PTO Request Process")]
+    tool_msg = next(m for m in llm_fn.seen[1] if m["role"] == "tool")
+    assert json.loads(tool_msg["content"])["available_hours"] == 96.0
+
+
+def test_inmemory_transport_background_index_task_does_not_error():
+    """mcp/server.py's own _build_index_in_background() (also used, unchanged, by
+    HRAgent's in-memory connect()) is exercised from-empty in
+    tests/test_ingest.py::TestGetReadyCollection - that's where "does building from
+    scratch work" is actually proven, with an explicit throwaway db_path (count_chunks
+    and get_ready_collection default to config.CHROMA_PERSIST_DIR, a value bound into
+    their signatures at import time, so it isn't something a test can monkeypatch
+    after the fact). What's unique to check here is narrower: that connecting via
+    the in-memory transport wires up that same background task without raising, and
+    that the agent works normally afterward against the (already-populated, shared)
+    default index."""
+    llm_fn = scripted(
+        calls(tool_call("search_policy_documents", query="PTO accrual rates")),
+        final("Answered."),
+    )
+
+    async def go():
+        agent = HRAgent(llm_fn=llm_fn, transport="inmemory")
+        await agent.connect()
+        try:
+            assert agent._index_task is not None
+            await agent._index_task  # would raise here if the background build itself errored
+            return await agent.run("How many PTO days do I get per year?")
+        finally:
+            await agent.close()
+
+    r = asyncio.run(go())
+    assert r.trace and r.trace[0].tool == "search_policy_documents" and r.trace[0].ok
+
+
+def test_inmemory_transport_employee_cannot_access_another_employees_records():
+    llm_fn = scripted(calls(tool_call("check_pto_balance", employee_id="E002")), final("Not allowed."))
+    r = run_agent(llm_fn, employee_id="E001", transport="inmemory")
+    assert r.trace[0].ok is False and r.trace[0].result_summary == "error: not_authorized"
+
+
+def test_app_works_end_to_end_with_inmemory_transport():
+    """The exact configuration Render's deploy uses (render.yaml's MCP_TRANSPORT):
+    the full FastAPI app, not just HRAgent directly."""
+    from fastapi.testclient import TestClient
+
+    from app.main import create_app
+
+    llm_fn = scripted(
+        calls(tool_call("check_pto_balance", employee_id="E001")),
+        final("You have PTO available."),
+    )
+    with TestClient(create_app(llm_fn=llm_fn, transport="inmemory")) as c:
+        health = c.get("/health").json()
+        chat = c.post("/chat", json={"message": "PTO?", "employee_id": "E001"}).json()
+
+    assert health["mcp_connected"] is True and health["mcp_tools"] == 7
+    assert chat["trace"][0]["tool"] == "check_pto_balance" and chat["trace"][0]["ok"] is True

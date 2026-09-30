@@ -29,6 +29,15 @@ services:
     # model now (app/ingest.py's get_ready_collection(), used only from
     # app/retriever.py); the FastAPI process only ever calls the lightweight
     # count_chunks(). See CLAUDE.md's Day 8 entry for the measurements.
+    #
+    # That fix cut peak memory a lot but a real deploy still needed 2 attempts to
+    # survive cold-start ingestion (crashed at ~56/97 chunks once, succeeded on
+    # retry) - a stdio subprocess is still a second whole Python process's baseline
+    # on top of an already-tight budget. MCP_TRANSPORT=inmemory below runs the same
+    # tools in the FastAPI process itself instead (app/agent.py's in-memory MCP
+    # transport), for real margin instead of a marginal pass. Local dev and every
+    # test still default to "stdio" (a real subprocess, the actual demonstrated MCP
+    # architecture) - this override is deploy-specific.
     # --loop asyncio --http h11: uvicorn[standard] auto-picks uvloop/httptools when
     # installed, which measured ~20MB higher RSS for no benefit this app needs
     # (uvloop/httptools are throughput optimizations; a low-traffic demo API on a
@@ -44,5 +53,7 @@ services:
         value: nvidia/nemotron-3-super-120b-a12b:free # check this is still live; see CLAUDE.md
       - key: CHROMA_PERSIST_DIR
         value: /opt/render/project/src/chroma_db
+      - key: MCP_TRANSPORT
+        value: inmemory
       - key: PYTHON_VERSION
         value: 3.12.7

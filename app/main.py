@@ -2,15 +2,19 @@
 
     uvicorn app.main:app --port 8000
 
-One long-lived HRAgent (one MCP server subprocess) is started with the app and shared
-by all requests, so the embedding model is loaded once instead of once per question.
+One long-lived HRAgent (one MCP session) is started with the app and shared by all
+requests, so the embedding model is loaded once instead of once per question.
 
 This process never loads the embedding model itself (only `count_chunks()`, which
-skips it) - the MCP server subprocess owns that (mcp/server.py, app/ingest.py's
-get_ready_collection()). Loading it in both processes at once - this one eagerly at
-startup, the MCP subprocess again on its first search - is what OOM-killed the first
-real Render deploy on its 512MB limit: two independent onnxruntime sessions running
-at once. See CLAUDE.md's Day 8 entry for the measurements behind that.
+skips it) - only app/retriever.py's calls, made through the MCP session (a stdio
+subprocess locally/in tests by default, or an in-process session when
+MCP_TRANSPORT=inmemory, as Render's deploy sets - see app/agent.py), ever load it.
+Loading it in two places at once - this process eagerly at startup, a stdio
+subprocess again on its first search - is what OOM-killed the first real Render
+deploy on its 512MB limit; a second real deploy then needed two attempts to survive
+its own cold-start ingestion even after that fix, which is why the deployed instance
+uses the in-process transport instead of a second whole process. See CLAUDE.md's Day
+8 entry for the measurements behind all of this.
 """
 
 from __future__ import annotations
@@ -46,13 +50,15 @@ def _enable_trace_logging() -> None:
     trace_log.propagate = False
 
 
-def create_app(llm_fn: Optional[LLMFn] = None) -> FastAPI:
-    """App factory. `llm_fn` swaps the agent's LLM (tests use a scripted fake)."""
+def create_app(llm_fn: Optional[LLMFn] = None, transport: Optional[str] = None) -> FastAPI:
+    """App factory. `llm_fn` swaps the agent's LLM (tests use a scripted fake).
+    `transport` overrides config.MCP_TRANSPORT (tests use this to exercise both the
+    stdio-subprocess and in-memory HRAgent paths against the real app)."""
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         _enable_trace_logging()
-        agent = HRAgent(llm_fn=llm_fn)
+        agent = HRAgent(llm_fn=llm_fn, transport=transport)
         app.state.agent = agent
         app.state.startup_error = None
         try:
@@ -60,9 +66,10 @@ def create_app(llm_fn: Optional[LLMFn] = None) -> FastAPI:
         except Exception as exc:  # app still starts; /health reports degraded, /chat 503s
             app.state.startup_error = f"{type(exc).__name__}: {exc}"
             log.error("MCP server failed to start: %s", app.state.startup_error)
-        # No index-building here: the MCP server subprocess owns that (see the
-        # module docstring). agent.connect() above only starts it; it builds its own
-        # index concurrently with serving requests (mcp/server.py's _serve()).
+        # No index-building here: the MCP session owns that (see the module
+        # docstring). agent.connect() above only starts it; it builds its own index
+        # concurrently with serving requests either way (mcp/server.py's _serve(),
+        # or HRAgent.connect()'s own background task in in-memory mode).
         try:
             yield
         finally:

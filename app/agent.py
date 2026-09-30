@@ -1,9 +1,20 @@
 """Agent orchestrator: an LLM tool-calling loop whose tools all live behind the MCP server.
 
-The agent never imports the tool implementations. It spawns mcp/server.py as a
-subprocess, discovers the tools over MCP (`list_tools`) and executes every call
-through `session.call_tool`. Each call is recorded as a TraceStep (tool, args,
-outcome, timing) — an operational trace, not the model's reasoning.
+The agent never imports the tool implementations directly. It discovers tools over
+MCP (`list_tools`) and executes every call through `session.call_tool`. Each call is
+recorded as a TraceStep (tool, args, outcome, timing) — an operational trace, not the
+model's reasoning.
+
+Two ways it connects, chosen by config.MCP_TRANSPORT:
+  - "stdio" (default): spawns mcp/server.py as a real separate OS process and talks
+    to it over the actual MCP wire protocol. What every test uses; what "the MCP
+    server" normally means here.
+  - "inmemory": runs the same tools in this process instead, over the SDK's in-memory
+    ClientSession transport (still genuine MCP protocol objects, just no second
+    process). Used only by the deployed Render instance — a stdio subprocess doubles
+    the embedding model's memory cost (two processes each loading it), which is what
+    OOM-killed real deploys; see _load_mcp_server_module()'s docstring and CLAUDE.md's
+    Day 8 entry.
 
     async with HRAgent() as agent:
         response = await agent.run("How much PTO do I have?", employee_id="E001")
@@ -15,6 +26,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import importlib.util
 import json
 import logging
 import os
@@ -22,9 +34,11 @@ import re
 import sys
 import time
 from contextlib import AsyncExitStack
+from types import ModuleType
 from typing import Any, Awaitable, Callable, Optional
 
 from mcp.client.stdio import stdio_client
+from mcp.shared.memory import create_connected_server_and_client_session
 from openai import APIError, APITimeoutError
 
 from app import config, llm
@@ -34,6 +48,23 @@ from mcp import ClientSession, StdioServerParameters
 log = logging.getLogger("hr_agent.trace")
 
 SERVER_PATH = config.ROOT / "mcp" / "server.py"
+
+
+def _load_mcp_server_module() -> ModuleType:
+    """Load mcp/server.py as an in-process module (its FastMCP instance, tools and
+    background-index-build helper), for MCP_TRANSPORT="inmemory".
+
+    Loaded by file path under an internal name, never as `import mcp.server` — mcp/
+    has no `__init__.py` precisely so it never shadows the installed `mcp` SDK
+    package of the same name (see mcp/server.py's own module docstring); a dotted
+    import here would defeat that. This also means mcp/server.py's own
+    `sys.path.insert(...)` line is redundant in this path (the repo root is already
+    on sys.path, since this is called from within the `app` package) but harmless.
+    """
+    spec = importlib.util.spec_from_file_location("_hr_agent_mcp_server", SERVER_PATH)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 MAX_STEPS = 6
 # FastMCP emits one content item per list element, so these tools' results must be
 # read from every content item rather than just the first.
@@ -95,14 +126,19 @@ def _summarize(result: Any) -> str:
 
 
 class HRAgent:
-    """Holds one MCP session (one server subprocess) and runs many questions over it."""
+    """Holds one MCP session (a server subprocess, or an in-process one - see
+    config.MCP_TRANSPORT) and runs many questions over it."""
 
-    def __init__(self, llm_fn: Optional[LLMFn] = None, max_steps: int = MAX_STEPS):
+    def __init__(
+        self, llm_fn: Optional[LLMFn] = None, max_steps: int = MAX_STEPS, transport: Optional[str] = None
+    ):
         self._llm = llm_fn or default_llm
         self._max_steps = max_steps
+        self._transport = transport or config.MCP_TRANSPORT
         self._stack: Optional[AsyncExitStack] = None
         self._session: Optional[ClientSession] = None
         self._tools: list[dict] = []
+        self._index_task: Optional[asyncio.Task] = None
 
     async def __aenter__(self) -> "HRAgent":
         await self.connect()
@@ -112,14 +148,26 @@ class HRAgent:
         await self.close()
 
     async def connect(self) -> None:
-        params = StdioServerParameters(
-            command=sys.executable,
-            args=[str(SERVER_PATH)],
-            env={**os.environ, "FASTMCP_LOG_LEVEL": "WARNING"},
-        )
         self._stack = AsyncExitStack()
-        read, write = await self._stack.enter_async_context(stdio_client(params))
-        self._session = await self._stack.enter_async_context(ClientSession(read, write))
+        if self._transport == "inmemory":
+            server_module = _load_mcp_server_module()
+            self._session = await self._stack.enter_async_context(
+                create_connected_server_and_client_session(server_module.mcp._mcp_server)
+            )
+            # Same reasoning as mcp/server.py's own _serve(): build in a background
+            # thread, concurrently with serving requests, so /health goes "ok" without
+            # needing traffic and without blocking this coroutine (and therefore
+            # FastAPI's own startup) on the embed. Kept on self so it isn't
+            # garbage-collected mid-flight; close() cancels it if still running.
+            self._index_task = asyncio.create_task(server_module._build_index_in_background())
+        else:
+            params = StdioServerParameters(
+                command=sys.executable,
+                args=[str(SERVER_PATH)],
+                env={**os.environ, "FASTMCP_LOG_LEVEL": "WARNING"},
+            )
+            read, write = await self._stack.enter_async_context(stdio_client(params))
+            self._session = await self._stack.enter_async_context(ClientSession(read, write))
         await self._session.initialize()
         listed = (await self._session.list_tools()).tools
         self._tools = [
@@ -131,6 +179,9 @@ class HRAgent:
         ]
 
     async def close(self) -> None:
+        if self._index_task is not None:
+            self._index_task.cancel()
+            self._index_task = None
         if self._stack is not None:
             await self._stack.aclose()
             self._stack = self._session = None
@@ -308,8 +359,8 @@ class HRAgent:
         return list(citations.values())
 
 
-async def _cli(message: str, employee_id: Optional[str]) -> None:
-    async with HRAgent() as agent:
+async def _cli(message: str, employee_id: Optional[str], transport: Optional[str] = None) -> None:
+    async with HRAgent(transport=transport) as agent:
         r = await agent.run(message, employee_id=employee_id)
     print(f"\n{r.answer}\n")
     print(f"Citations: {[f'{c.doc_id}: {c.section}' for c in r.citations] or 'none'}")
@@ -324,9 +375,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("message")
     parser.add_argument("--employee", default=None, help="signed-in employee id, e.g. E001")
+    parser.add_argument(
+        "--transport", choices=["stdio", "inmemory"], default=None,
+        help="override MCP_TRANSPORT for this run (default: config.MCP_TRANSPORT, i.e. 'stdio')",
+    )
     args = parser.parse_args()
     logging.basicConfig(level=logging.WARNING)
-    asyncio.run(_cli(args.message, args.employee))
+    asyncio.run(_cli(args.message, args.employee, args.transport))
 
 
 if __name__ == "__main__":

@@ -25,6 +25,15 @@ CHROMA_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", str(ROOT / "chroma_db"))
 CORPUS_DIR = ROOT / "corpus"
 MOCK_DATA_DIR = ROOT / "mock_data"
 
+# "stdio" (default): the agent spawns mcp/server.py as a real separate OS process,
+# talking to it over the actual MCP wire protocol — this is what all the tests use
+# and what's normally meant by "the MCP server". "inmemory": the same tools run in
+# THIS process instead, connected through the same ClientSession/protocol machinery
+# but without a second process's memory overhead (~85-120MB) — used only by the
+# deployed Render instance, whose 512Mi budget is real; see app/agent.py's
+# _load_mcp_server_module() and CLAUDE.md's Day 8 entry for why this exists.
+MCP_TRANSPORT = os.getenv("MCP_TRANSPORT", "stdio")
+
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
 # Default matches .env.example / render.yaml. OpenRouter's free-tier slugs churn (see
