@@ -103,6 +103,24 @@ def _snippet(text: str) -> str:
 
 CITATION_RE = re.compile(r"\[(POL-[A-Z]+-\d+)(?:\s*:\s*([^\]]+))?\]")
 
+# Some free-tier models substitute visually-similar Unicode characters for the plain
+# ASCII brackets/hyphens the system prompt asks for in citations. Observed for real
+# during Day 9 evaluation: nvidia/nemotron-3-super-120b-a12b used U+2011 NON-BREAKING
+# HYPHEN inside doc IDs ("POL‑IT‑001") and fullwidth CJK brackets ("【POL-HR-005: ...】")
+# instead of "[...]" — both silently defeated CITATION_RE and dropped citations from
+# fully correct, well-cited answers (3 of 5 multi-doc eval items scored citation_acc=0
+# this way, not because the model failed to cite — it did — but because the citations
+# were unparseable). Normalizing known lookalikes before matching is far more robust
+# than trying to enumerate every variant inside the regex itself, and this affects
+# real /chat responses, not just eval scoring.
+_CITATION_MARKUP_NORMALIZE = str.maketrans(
+    {
+        "【": "[", "［": "[",  # 【 ［ -> [
+        "】": "]", "］": "]",  # 】 ］ -> ]
+        "‐": "-", "‑": "-", "‒": "-", "–": "-", "—": "-",  # dash variants -> -
+    }
+)
+
 # An LLM turn: takes chat messages + OpenAI-format tool schemas, returns an object with
 # `.content` and `.tool_calls` (each with `.id`, `.function.name`, `.function.arguments`).
 LLMFn = Callable[[list[dict], list[dict]], Awaitable[Any]]
@@ -348,7 +366,8 @@ class HRAgent:
     def _citations(answer: str, sources: dict) -> list[Citation]:
         """Citations the answer makes that match a source a tool actually returned."""
         citations: dict[tuple[str, str], Citation] = {}
-        for doc_id, section in CITATION_RE.findall(answer):
+        normalized = answer.translate(_CITATION_MARKUP_NORMALIZE)
+        for doc_id, section in CITATION_RE.findall(normalized):
             cited = section.strip().lower()
             candidates = [c for (d, _), c in sources.items() if d == doc_id]
             # Models often append detail ("PTO Request Process, section 4.3"), so match

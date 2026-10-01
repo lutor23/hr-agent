@@ -132,6 +132,28 @@ def test_citation_no_tool_returned_is_dropped():
     assert run_agent(llm_fn).citations == []
 
 
+def test_citation_survives_unicode_lookalike_brackets_and_hyphens():
+    """Observed for real during the Day 9 evaluation run: nvidia/nemotron-3 sometimes
+    writes citations as "【POL-HR-005: Day 1 Activities】" (fullwidth CJK brackets) or
+    with U+2011 NON-BREAKING HYPHEN inside the doc id ("POL‑IT‑001") instead of plain
+    ASCII - a fully correct, well-cited answer that CITATION_RE used to silently drop
+    entirely (3 of 5 multi-doc eval items scored citation_accuracy=0 this way, not
+    because the model failed to cite its sources)."""
+    llm_fn = scripted(
+        calls(tool_call("get_policy_section", doc_id="POL-HR-005", section="Day 1 Activities")),
+        final("Finish security training on day 1【POL-HR-005: Day 1 Activities】."),
+    )
+    assert [(c.doc_id, c.section) for c in run_agent(llm_fn).citations] == [("POL-HR-005", "Day 1 Activities")]
+
+
+def test_citation_survives_non_breaking_hyphen_in_doc_id():
+    llm_fn = scripted(
+        calls(tool_call("get_policy_section", doc_id="POL-IT-001", section="Network Security")),
+        final("Use the VPN [POL‑IT‑001: Network Security]."),
+    )
+    assert [(c.doc_id, c.section) for c in run_agent(llm_fn).citations] == [("POL-IT-001", "Network Security")]
+
+
 def test_employee_cannot_read_another_employees_records():
     llm_fn = scripted(
         calls(tool_call("check_pto_balance", employee_id="E002")),

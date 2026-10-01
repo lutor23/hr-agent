@@ -1,0 +1,908 @@
+{
+  "summary": {
+    "n_items": 25,
+    "n_errored": 0,
+    "workflow_completion_rate": 0.92,
+    "groundedness_avg": 0.833,
+    "citation_accuracy_avg": 0.708,
+    "tool_selection_accuracy": 0.96,
+    "escalation_clarification_accuracy": 0.9,
+    "latency_p50_ms": 93912.9,
+    "latency_p95_ms": 228215.9,
+    "latency_cold_ms": 58698.6,
+    "latency_warm_p50_ms": 97023.4,
+    "latency_warm_p95_ms": 229150.5,
+    "by_category": {
+      "straightforward": {
+        "n": 6,
+        "behavior_accuracy": null
+      },
+      "multi-doc": {
+        "n": 5,
+        "behavior_accuracy": null
+      },
+      "tool-requiring": {
+        "n": 6,
+        "behavior_accuracy": 1.0
+      },
+      "ambiguous": {
+        "n": 4,
+        "behavior_accuracy": 0.75
+      },
+      "out-of-scope": {
+        "n": 4,
+        "behavior_accuracy": 1.0
+      }
+    }
+  },
+  "ablation": {
+    "n_items": 12,
+    "top_k=3_recall_avg": 0.792,
+    "top_k=10_recall_avg": 1.0
+  },
+  "results": [
+    {
+      "id": "straightforward-01",
+      "category": "straightforward",
+      "message": "How many PTO days do I get per year after 5 years of service?",
+      "answer": "After 5\u202fyears of service, you accrue **20 days of PTO per year** (160\u202fhours)\u202f[POL-HR-001: PTO Accrual Rates].",
+      "citations": [
+        {
+          "doc_id": "POL-HR-001",
+          "title": "Paid Time Off (PTO) Policy",
+          "section": "PTO Accrual Rates",
+          "source_file": "01-pto-policy.md",
+          "snippet": "PTO accrues each pay period based on years of service: | Years of Service | Annual PTO Days | Accrual per Pay Period (biweekly) | |---|---|---| | 0\u20131 year | 10 days (80 hrs) | 3.08 hrs | | 1\u20133 years | 15 days (120 hrs) | 4.62 hrs | | 3\u20135 ye"
+        }
+      ],
+      "tools_used": [
+        "search_policy_documents"
+      ],
+      "trace": [
+        {
+          "step": 1,
+          "tool": "search_policy_documents",
+          "arguments": {
+            "query": "PTO accrual after 5 years of service",
+            "top_k": 5
+          },
+          "ok": true,
+          "result_summary": "5 result(s)",
+          "duration_ms": 121.0
+        }
+      ],
+      "latency_ms": 58698.6,
+      "error": null,
+      "escalated": false,
+      "tool_selection_ok": true,
+      "citation_accuracy": 1.0,
+      "groundedness": 1.0,
+      "workflow_completed": true,
+      "behavior_expected": "answer",
+      "behavior_ok": null,
+      "cold": true
+    },
+    {
+      "id": "straightforward-02",
+      "category": "straightforward",
+      "message": "What's the minimum password length required for company systems?",
+      "answer": "The minimum password length required for company systems is **14 characters** [POL-IT-001: Password and Authentication Requirements].",
+      "citations": [
+        {
+          "doc_id": "POL-IT-001",
+          "title": "Data Security and Acceptable Use Policy",
+          "section": "Password and Authentication Requirements",
+          "source_file": "07-data-security-policy.md",
+          "snippet": "- **Minimum length:** 14 characters - **Complexity:** Must include uppercase, lowercase, numbers, and at least one special character - **MFA required** for all company systems accessible via SSO (Okta) - Passwords must not be reused within "
+        }
+      ],
+      "tools_used": [
+        "search_policy_documents"
+      ],
+      "trace": [
+        {
+          "step": 1,
+          "tool": "search_policy_documents",
+          "arguments": {
+            "query": "minimum password length",
+            "top_k": 5
+          },
+          "ok": true,
+          "result_summary": "1 result(s)",
+          "duration_ms": 25.8
+        }
+      ],
+      "latency_ms": 118917.5,
+      "error": null,
+      "escalated": false,
+      "tool_selection_ok": true,
+      "citation_accuracy": 1.0,
+      "groundedness": 1.0,
+      "workflow_completed": true,
+      "behavior_expected": "answer",
+      "behavior_ok": null,
+      "cold": false
+    },
+    {
+      "id": "straightforward-03",
+      "category": "straightforward",
+      "message": "What happens on Day 1 for a new employee?",
+      "answer": "On Day\u202f1, a new employee at Acme Corp typically experiences the following activities, as outlined in the Onboarding Policy and Checklist:\n\n- Welcome email from HR with the first\u2011week schedule.  \n- IT setup session: laptop configuration, Okta SSO, Slack, email, and VPN.  \n- HR orientation (1\u202fhour): benefits overview, handbook review, and code of conduct acknowledgment.  \n- Meeting with the direct manager: role expectations, team introduction, and first project briefing.  \n- Mandatory security training module (must be completed Day\u202f1): acceptable use, password management, phishing awareness, and data handling.  \n- Office tour (or a virtual office/tool walkthrough for remote hires).  \n\n[POL-HR-005: Day 1 Activities]",
+      "citations": [
+        {
+          "doc_id": "POL-HR-005",
+          "title": "Onboarding Policy and Checklist",
+          "section": "Day 1 Activities",
+          "source_file": "05-onboarding-policy.md",
+          "snippet": "- Welcome email from HR with first-week schedule. - IT setup session: laptop configuration, Okta SSO, Slack, email, VPN. - HR orientation (1 hour): benefits overview, handbook review, code of conduct acknowledgment. - Meeting with direct ma"
+        }
+      ],
+      "tools_used": [
+        "search_policy_documents"
+      ],
+      "trace": [
+        {
+          "step": 1,
+          "tool": "search_policy_documents",
+          "arguments": {
+            "query": "Day 1 new employee onboarding",
+            "top_k": 5
+          },
+          "ok": true,
+          "result_summary": "5 result(s)",
+          "duration_ms": 11.1
+        }
+      ],
+      "latency_ms": 93912.9,
+      "error": null,
+      "escalated": false,
+      "tool_selection_ok": true,
+      "citation_accuracy": 1.0,
+      "groundedness": 1.0,
+      "workflow_completed": true,
+      "behavior_expected": "answer",
+      "behavior_ok": null,
+      "cold": false
+    },
+    {
+      "id": "straightforward-04",
+      "category": "straightforward",
+      "message": "Is business class allowed for a flight under 6 hours?",
+      "answer": "Business class is **not** allowed for flights under 6\u202fhours. The policy requires economy class for such trips; business class (or premium economy) is permitted only for flights 6\u202fhours or longer, or when a documented medical condition necessitates it.  \n\n[POL-HR-003: Travel Expenses]",
+      "citations": [
+        {
+          "doc_id": "POL-HR-003",
+          "title": "Expense Reimbursement Policy",
+          "section": "Travel Expenses",
+          "source_file": "03-expense-reimbursement-policy.md",
+          "snippet": "3.1 Airfare - **Economy class** required for flights under 6 hours. - **Premium economy or business class** is permitted for flights 6 hours or longer (red-eye or overnight) or when the employee has a documented medical condition requiring "
+        }
+      ],
+      "tools_used": [
+        "search_policy_documents"
+      ],
+      "trace": [
+        {
+          "step": 1,
+          "tool": "search_policy_documents",
+          "arguments": {
+            "query": "business class flight under 6 hours travel policy",
+            "top_k": 5
+          },
+          "ok": true,
+          "result_summary": "5 result(s)",
+          "duration_ms": 21.1
+        }
+      ],
+      "latency_ms": 54556.9,
+      "error": null,
+      "escalated": false,
+      "tool_selection_ok": true,
+      "citation_accuracy": 1.0,
+      "groundedness": 1.0,
+      "workflow_completed": true,
+      "behavior_expected": "answer",
+      "behavior_ok": null,
+      "cold": false
+    },
+    {
+      "id": "straightforward-05",
+      "category": "straightforward",
+      "message": "What standard laptop do full-time engineers receive?",
+      "answer": "Full\u2011time engineers receive a **MacBook Pro\u202f14\u2033** as their standard laptop. This is specified in the Equipment and Technology Policy under the \u201cStandard Equipment by Role\u201d section, which states that engineers (and designers) get a MacBook Pro\u202f14\u2033 while all other roles receive a MacBook Air\u202f13\u2033. [POL-HR-008: Standard Equipment by Role]",
+      "citations": [
+        {
+          "doc_id": "POL-HR-008",
+          "title": "Equipment and Technology Policy",
+          "section": "Standard Equipment by Role",
+          "source_file": "08-equipment-policy.md",
+          "snippet": "All full-time employees receive a **standard equipment package** at the start of employment, determined by role category: 2.1 Standard Package (All Full-Time Employees) - **Laptop:** MacBook Pro 14\" (engineers, designers) or MacBook Air 13\""
+        }
+      ],
+      "tools_used": [
+        "search_policy_documents"
+      ],
+      "trace": [
+        {
+          "step": 1,
+          "tool": "search_policy_documents",
+          "arguments": {
+            "query": "standard laptop full-time engineers",
+            "top_k": 5
+          },
+          "ok": true,
+          "result_summary": "5 result(s)",
+          "duration_ms": 12.8
+        }
+      ],
+      "latency_ms": 76611.5,
+      "error": null,
+      "escalated": false,
+      "tool_selection_ok": true,
+      "citation_accuracy": 1.0,
+      "groundedness": 1.0,
+      "workflow_completed": true,
+      "behavior_expected": "answer",
+      "behavior_ok": null,
+      "cold": false
+    },
+    {
+      "id": "straightforward-06",
+      "category": "straightforward",
+      "message": "Is Juneteenth a paid company holiday?",
+      "answer": "Yes. Juneteenth National Independence Day is listed in Acme Corp\u2019s 2025 Company Holiday Schedule, and the Company Holidays Policy states that Acme Corp provides paid holidays to all eligible employees\u202f[POL-HR-009: 2025 Company Holiday Schedule]\u202f[POL-HR-009: Overview]. Eligibility depends on employment status (full\u2011time, part\u2011time, etc.) as outlined in the policy\u2019s Eligibility section. If you need details about your specific eligibility, please provide your employee ID.",
+      "citations": [
+        {
+          "doc_id": "POL-HR-009",
+          "title": "Company Holidays Policy",
+          "section": "2025 Company Holiday Schedule",
+          "source_file": "09-holidays-policy.html",
+          "snippet": "| Holiday | Observed Date (2025) | | New Year's Day | Wednesday, January 1 | | Martin Luther King Jr. Day | Monday, January 20 | | Presidents' Day | Monday, February 17 | | Memorial Day | Monday, May 26 | | Juneteenth National Independence "
+        },
+        {
+          "doc_id": "POL-HR-009",
+          "title": "Company Holidays Policy",
+          "section": "Overview",
+          "source_file": "09-holidays-policy.html",
+          "snippet": "Acme Corp provides paid holidays to all eligible employees. Company holidays are separate from PTO and do not reduce an employee's PTO balance. When a holiday falls on a weekend, the observed day is noted in the annual holiday schedule publ"
+        }
+      ],
+      "tools_used": [
+        "search_policy_documents"
+      ],
+      "trace": [
+        {
+          "step": 1,
+          "tool": "search_policy_documents",
+          "arguments": {
+            "query": "Juneteenth holiday paid",
+            "top_k": 5
+          },
+          "ok": true,
+          "result_summary": "5 result(s)",
+          "duration_ms": 18.4
+        }
+      ],
+      "latency_ms": 100134.0,
+      "error": null,
+      "escalated": false,
+      "tool_selection_ok": true,
+      "citation_accuracy": 1.0,
+      "groundedness": 0.5,
+      "workflow_completed": true,
+      "behavior_expected": "answer",
+      "behavior_ok": null,
+      "cold": false
+    },
+    {
+      "id": "multidoc-01",
+      "category": "multi-doc",
+      "message": "If I work remotely, what security requirements do I need to follow for my home network and passwords?",
+      "answer": "Here are the security requirements you must follow when working remotely, according to Acme Corp policy:\n\n**Password and authentication**  \n- Minimum length: 14 characters  \n- Complexity: must include uppercase, lowercase, numbers, and at least one special character  \n- MFA required for all company systems accessed via SSO (Okta)  \n- Passwords must not be reused within the last 12 rotations  \n- Do not share passwords with colleagues; use shared credential vaults (1Password Teams) for team accounts  \n- Corporate SSO credentials (Okta) must not be used for personal accounts  \n[POL\u2011IT\u2011001: Password and Authentication Requirements]\n\n**Network security (home network)**  \n- VPN required whenever accessing company systems from outside the corporate network (including home office)  \n- VPN client: Cisco AnyConnect; download from the IT portal  \n- Do not connect to company systems over unsecured public Wi\u2011Fi without VPN  \n- Home router security: employees are encouraged (not required) to use WPA3 encryption on their home Wi\u2011Fi  \n[POL\u2011IT\u2011001: Network Security]\n\n**Remote\u2011work data security**  \n- Use only Acme\u2011approved devices (see Equipment Policy POL\u2011HR\u2011008)  \n- Connect through the corporate VPN at all times when accessing company systems  \n- Do not use public Wi\u2011Fi without VPN enabled  \n- Do not allow household members or third parties to access your work device or screen  \n- Report any security incidents to **security@acmecorp.example.com** immediately  \n[POL\u2011HR\u2011002: Data Security While Remote]\n\nThese are the specific requirements outlined in the cited policy sections. If you need further clarification or have a situation not covered here, please contact HR or the IT security team.",
+      "citations": [],
+      "tools_used": [
+        "search_policy_documents"
+      ],
+      "trace": [
+        {
+          "step": 1,
+          "tool": "search_policy_documents",
+          "arguments": {
+            "query": "remote work security home network password requirements",
+            "top_k": 5
+          },
+          "ok": true,
+          "result_summary": "5 result(s)",
+          "duration_ms": 24.2
+        }
+      ],
+      "latency_ms": 145920.8,
+      "error": null,
+      "escalated": false,
+      "tool_selection_ok": true,
+      "citation_accuracy": 0.0,
+      "groundedness": null,
+      "workflow_completed": true,
+      "behavior_expected": "answer",
+      "behavior_ok": null,
+      "cold": false
+    },
+    {
+      "id": "multidoc-02",
+      "category": "multi-doc",
+      "message": "What equipment will I get on my first day, and when do I need to finish security training?",
+      "answer": "Based on Acme Corp HR policies:\n\n**Equipment you\u2019ll receive on your first day**  \n- The onboarding checklist states that Day\u202f1 includes an \u201cIT setup session: laptop configuration, Okta SSO, Slack, email, VPN\u201d\u3010POL-HR-005: Day 1 Activities\u3011.  \n- The Equipment and Technology Policy explains that equipment is auto\u2011provisioned based on your role during onboarding. Remote hires receive shipment to their home address\u202f2\u20113 business days before the start date; on\u2011site hires pick up their equipment at the office IT desk on Day\u202f1\u3010POL-HR-008: Requesting Equipment\u3011.  \n  (The exact peripherals (monitor, keyboard, mouse, etc.) depend on your role\u2019s standard package, as defined in the equipment provisioning process.)\n\n**Security training deadline**  \n- The same Day\u202f1 Activities section notes that the \u201cSecurity training module (mandatory, must be completed Day\u202f1)\u201d covers acceptable use, password management, phishing awareness, and data handling\u3010POL-HR-005: Day 1 Activities\u3011.  \n  Therefore, you must finish the security training on your first day of employment.  \n\nIf you need specifics about the exact equipment list for your particular role, you can check with your hiring manager or the IT onboarding team, as the policy states the package is role\u2011based.",
+      "citations": [],
+      "tools_used": [
+        "search_policy_documents"
+      ],
+      "trace": [
+        {
+          "step": 1,
+          "tool": "search_policy_documents",
+          "arguments": {
+            "query": "first day equipment",
+            "top_k": 5
+          },
+          "ok": true,
+          "result_summary": "5 result(s)",
+          "duration_ms": 24.9
+        }
+      ],
+      "latency_ms": 112228.9,
+      "error": null,
+      "escalated": false,
+      "tool_selection_ok": true,
+      "citation_accuracy": 0.0,
+      "groundedness": null,
+      "workflow_completed": true,
+      "behavior_expected": "answer",
+      "behavior_ok": null,
+      "cold": false
+    },
+    {
+      "id": "multidoc-03",
+      "category": "multi-doc",
+      "message": "I need 3 weeks off for a medical procedure. Should I use PTO or file for medical leave, and how are they different?",
+      "answer": "Based on Acme Corp\u2019s HR policies:\n\n**Medical leave (FMLA)**  \n- Employees who have worked at Acme Corp for at least\u202f12\u202fmonths and logged\u202f\u2265\u202f1,250\u202fhours in the past\u202f12\u202fmonths are eligible for up to\u202f12\u202fweeks of unpaid, job\u2011protected leave per year for a serious health condition (including a medical procedure)\u3010POL-HR-010: Family and Medical Leave (FMLA)\u3011.  \n- The company **requires** you to use any accrued PTO concurrently with unpaid FMLA leave; using PTO does **not** extend the 12\u2011week FMLA entitlement\u3010POL-HR-010: Family and Medical Leave (FMLA)\u3011.  \n\n**Paid Time Off (PTO)**  \n- PTO covers vacation, personal days, and routine illness. It is paid time off drawn from your accrued balance and is subject to manager approval\u3010POL-HR-001: Overview\u3011.  \n- When taking FMLA\u2011qualified medical leave, PTO may run concurrently with the unpaid leave\u3010POL-HR-001: Interactions with Other Leave Types\u3011.  \n\n**What this means for your 3\u2011week medical procedure**  \n- If you meet the FMLA eligibility criteria, you should **file for medical leave** (FMLA). You will then use your accrued PTO concurrently so you receive pay during the leave, but the total leave length remains limited to the FMLA 12\u2011week entitlement.  \n- If you are **not** FMLA\u2011eligible, you would need to rely on **PTO** (if you have sufficient balance) or request an unpaid personal leave of absence (up to\u202f4\u202fweeks, discretionary)\u3010POL-HR-010: Personal Leave\u3011.  \n\nTo determine your exact eligibility and see how much PTO you have available, please provide your employee ID. Once I have that, I can check your PTO balance and confirm your FMLA eligibility based on your hire date and hours worked.",
+      "citations": [],
+      "tools_used": [
+        "search_policy_documents",
+        "get_policy_section"
+      ],
+      "trace": [
+        {
+          "step": 1,
+          "tool": "search_policy_documents",
+          "arguments": {
+            "query": "medical leave policy PTO difference",
+            "top_k": 5
+          },
+          "ok": true,
+          "result_summary": "5 result(s)",
+          "duration_ms": 25.3
+        },
+        {
+          "step": 2,
+          "tool": "get_policy_section",
+          "arguments": {
+            "doc_id": "POL-HR-001",
+            "section": "Interactions with Other Leave Types"
+          },
+          "ok": true,
+          "result_summary": "ok: doc_id, title, section, source_file, text",
+          "duration_ms": 9.8
+        }
+      ],
+      "latency_ms": 213261.3,
+      "error": null,
+      "escalated": false,
+      "tool_selection_ok": true,
+      "citation_accuracy": 0.0,
+      "groundedness": null,
+      "workflow_completed": true,
+      "behavior_expected": "answer",
+      "behavior_ok": null,
+      "cold": false
+    },
+    {
+      "id": "multidoc-04",
+      "category": "multi-doc",
+      "message": "Can I get reimbursed for home office equipment as a remote employee?",
+      "answer": "Yes. Acme Corp provides a one\u2011time home\u2011office setup stipend for approved full\u2011time remote employees.\n\n- **Amount:** Up to **$500** for eligible equipment.  \n- **Eligible items:** monitor, keyboard, mouse, desk accessories, webcam, headset.  \n- **Not eligible:** desks, chairs, general furniture, personal d\u00e9cor, office supplies (these are not reimbursable as standard expense).  \n- **Process:** Requires manager approval and submission of receipts via Concur **within 90 days** of your remote\u2011work arrangement approval.  \n\nIf you have a documented ergonomic or medical need, you may request an exception: HR (with a doctor\u2019s note) can approve up to **$400** for an ergonomic chair or standing desk.  \n\nThese rules come from the Expense Reimbursement Policy (Home Office Equipment section) and are referenced in the Remote Work Policy (Expense Reimbursement for Remote Work section)\u202f[POL-HR-003: Home Office Equipment]\u202f[POL-HR-002: Expense Reimbursement for Remote Work].  \n\nFor any specific request (e.g., submitting receipts or seeking an ergonomic exception), you would need to work with your manager and HR through the Concur system. If you need help opening a ticket or drafting an email to HR, let me know and I can create a mock ticket or draft for you.",
+      "citations": [
+        {
+          "doc_id": "POL-HR-003",
+          "title": "Expense Reimbursement Policy",
+          "section": "Home Office Equipment",
+          "source_file": "03-expense-reimbursement-policy.md",
+          "snippet": "4.1 Initial Setup Stipend (Full-Time Remote Employees Only) - Employees approved for a **fully remote** primary work arrangement are eligible for a one-time **$500 home office setup stipend**. - Eligible items: monitor, keyboard, mouse, des"
+        },
+        {
+          "doc_id": "POL-HR-002",
+          "title": "Remote Work Policy",
+          "section": "Expense Reimbursement for Remote Work",
+          "source_file": "02-remote-work-policy.md",
+          "snippet": "See the **Expense Reimbursement Policy (POL-HR-003)** for home office equipment and internet subsidy details. Key points: - One-time home office setup stipend: up to $500 for approved full-time remote employees. - Monthly internet subsidy: "
+        }
+      ],
+      "tools_used": [
+        "search_policy_documents"
+      ],
+      "trace": [
+        {
+          "step": 1,
+          "tool": "search_policy_documents",
+          "arguments": {
+            "query": "home office equipment reimbursement remote employee",
+            "top_k": 5
+          },
+          "ok": true,
+          "result_summary": "5 result(s)",
+          "duration_ms": 23.8
+        }
+      ],
+      "latency_ms": 101886.9,
+      "error": null,
+      "escalated": false,
+      "tool_selection_ok": true,
+      "citation_accuracy": 1.0,
+      "groundedness": 1.0,
+      "workflow_completed": true,
+      "behavior_expected": "answer",
+      "behavior_ok": null,
+      "cold": false
+    },
+    {
+      "id": "multidoc-05",
+      "category": "multi-doc",
+      "message": "If I violate the data security policy while working remotely, could I lose my remote work privileges?",
+      "answer": "Yes. According to Acme Corp\u2019s Remote Work Policy, the company reserves the right to revoke remote\u2011work arrangements at any time with **2 weeks\u2019 notice** for performance, security, or business reasons\u202f[POL-HR-002: Revocation of Remote Work Privileges].  \n\nThe policy also requires all remote employees to comply with the Data Security Policy (POL\u2011IT\u2011001) while working remotely\u202f[POL-HR-002: Data Security While Remote]. A violation of that data\u2011security requirement would constitute a \u201csecurity\u201d reason under the revocation clause, potentially leading to loss of remote\u2011work privileges.  \n\nIf you have concerns about a specific incident, you should report it to\u202fsecurity@acmecorp.example.com\u202fand consult with HR or your manager for next steps.",
+      "citations": [
+        {
+          "doc_id": "POL-HR-002",
+          "title": "Remote Work Policy",
+          "section": "Revocation of Remote Work Privileges",
+          "source_file": "02-remote-work-policy.md",
+          "snippet": "Acme Corp reserves the right to revoke remote work arrangements at any time with **2 weeks' notice** for performance, security, or business reasons. Employees who cannot return to an in-office arrangement may be offered a transfer or separa"
+        },
+        {
+          "doc_id": "POL-HR-002",
+          "title": "Remote Work Policy",
+          "section": "Data Security While Remote",
+          "source_file": "02-remote-work-policy.md",
+          "snippet": "Regardless of location, employees must comply with the **Data Security Policy (POL-IT-001)**: - Use only Acme-approved devices (see Equipment Policy POL-HR-008). - Connect through the corporate VPN at all times when accessing company system"
+        }
+      ],
+      "tools_used": [
+        "search_policy_documents"
+      ],
+      "trace": [
+        {
+          "step": 1,
+          "tool": "search_policy_documents",
+          "arguments": {
+            "query": "data security policy remote work privileges violation",
+            "top_k": 5
+          },
+          "ok": true,
+          "result_summary": "5 result(s)",
+          "duration_ms": 51.8
+        }
+      ],
+      "latency_ms": 84494.1,
+      "error": null,
+      "escalated": false,
+      "tool_selection_ok": true,
+      "citation_accuracy": 0.5,
+      "groundedness": 0.5,
+      "workflow_completed": true,
+      "behavior_expected": "answer",
+      "behavior_ok": null,
+      "cold": false
+    },
+    {
+      "id": "tool-01",
+      "category": "tool-requiring",
+      "message": "How much PTO do I have available right now?",
+      "answer": "You have **96.0 hours** of PTO available right now.",
+      "citations": [],
+      "tools_used": [
+        "check_pto_balance"
+      ],
+      "trace": [
+        {
+          "step": 1,
+          "tool": "check_pto_balance",
+          "arguments": {
+            "employee_id": "E001"
+          },
+          "ok": true,
+          "result_summary": "ok: employee_id, annual_days, available_hours, pending_hours, used_hours, carryover_hours",
+          "duration_ms": 7.2
+        }
+      ],
+      "latency_ms": 39545.1,
+      "error": null,
+      "escalated": false,
+      "tool_selection_ok": true,
+      "citation_accuracy": null,
+      "groundedness": null,
+      "workflow_completed": true,
+      "behavior_expected": "answer",
+      "behavior_ok": null,
+      "cold": false
+    },
+    {
+      "id": "tool-02",
+      "category": "tool-requiring",
+      "message": "What medical plan am I enrolled in, and do I have an HSA contribution?",
+      "answer": "Based on your benefits information:\n\n- **Medical plan:** Acme HDHP  \n- **HSA:** You have an HSA enabled (the `hsa` flag is set to\u202ftrue).  \n\nIf you need details about your HSA contribution amount or payroll deductions, please let me know and I can help you locate that information.",
+      "citations": [],
+      "tools_used": [
+        "lookup_benefits_status"
+      ],
+      "trace": [
+        {
+          "step": 1,
+          "tool": "lookup_benefits_status",
+          "arguments": {
+            "employee_id": "E002"
+          },
+          "ok": true,
+          "result_summary": "ok: employee_id, medical_plan, coverage_tier, dental, vision, hsa",
+          "duration_ms": 4.7
+        }
+      ],
+      "latency_ms": 54711.1,
+      "error": null,
+      "escalated": false,
+      "tool_selection_ok": true,
+      "citation_accuracy": null,
+      "groundedness": null,
+      "workflow_completed": true,
+      "behavior_expected": "answer",
+      "behavior_ok": null,
+      "cold": false
+    },
+    {
+      "id": "tool-03",
+      "category": "tool-requiring",
+      "message": "What's my job title and who is my manager?",
+      "answer": "Your job title is **Product Designer**.  \nYour manager\u2019s employee ID is **E010**.  \n\nFor privacy reasons, I can only share the manager\u2019s ID from your own record. If you need the manager\u2019s name or contact details, please reach out to HR directly.",
+      "citations": [],
+      "tools_used": [
+        "lookup_employee_profile"
+      ],
+      "trace": [
+        {
+          "step": 1,
+          "tool": "lookup_employee_profile",
+          "arguments": {
+            "employee_id": "E003"
+          },
+          "ok": true,
+          "result_summary": "ok: employee_id, name, title, department, manager_id, hire_date",
+          "duration_ms": 7.1
+        },
+        {
+          "step": 2,
+          "tool": "lookup_employee_profile",
+          "arguments": {
+            "employee_id": "E010"
+          },
+          "ok": false,
+          "result_summary": "error: not_authorized",
+          "duration_ms": 0.0
+        }
+      ],
+      "latency_ms": 118709.2,
+      "error": null,
+      "escalated": false,
+      "tool_selection_ok": true,
+      "citation_accuracy": null,
+      "groundedness": null,
+      "workflow_completed": false,
+      "behavior_expected": "answer",
+      "behavior_ok": null,
+      "cold": false
+    },
+    {
+      "id": "tool-04",
+      "category": "tool-requiring",
+      "message": "Can I take two weeks off in December? What's my balance and what's the process?",
+      "answer": "Your current PTO balance shows **96\u202fhours available** (\u224812\u202fdays) and **8\u202fhours pending** (\u22481\u202fday). Two weeks off (10\u202fconsecutive business days\u202f=\u202f80\u202fhours) is within your available balance.\n\n**Process for taking two weeks off in December**\n\nBecause the request is for **10+ consecutive business days**, it falls under the \u201cExtended Leave\u201d provision of the PTO policy:\n\n- Submit the request in the HR portal (Workday).  \n- The request must be approved by both your direct manager **and** the department head.  \n- HR must be notified **at least 15 business days in advance** (when possible).  \n- A coverage plan must be submitted and approved before the leave begins.  \n\nFor standard requests (less than 10 days), the process is: submit via Workday, manager approves/denies within 2 business days, and you receive email confirmation. Short\u2011notice requests (<3 business days) require you to contact your manager directly before submitting the portal request.\n\nAll of these steps are outlined in the PTO Request Process section of the policy\u202f[POL-HR-001: PTO Request Process].\n\nIf you need help drafting the request or have further questions, let me know!",
+      "citations": [
+        {
+          "doc_id": "POL-HR-001",
+          "title": "Paid Time Off (PTO) Policy",
+          "section": "PTO Request Process",
+          "source_file": "01-pto-policy.md",
+          "snippet": "4.1 Standard Requests (3+ business days in advance) 1. Employee submits request in the HR portal (Workday). 2. System notifies the employee's direct manager. 3. Manager approves or denies within 2 business days. 4. Employee receives confirm"
+        }
+      ],
+      "tools_used": [
+        "check_pto_balance",
+        "search_policy_documents"
+      ],
+      "trace": [
+        {
+          "step": 1,
+          "tool": "check_pto_balance",
+          "arguments": {
+            "employee_id": "E001"
+          },
+          "ok": true,
+          "result_summary": "ok: employee_id, annual_days, available_hours, pending_hours, used_hours, carryover_hours",
+          "duration_ms": 3.9
+        },
+        {
+          "step": 2,
+          "tool": "search_policy_documents",
+          "arguments": {
+            "query": "PTO request process two weeks off December",
+            "top_k": 5
+          },
+          "ok": true,
+          "result_summary": "5 result(s)",
+          "duration_ms": 29.7
+        }
+      ],
+      "latency_ms": 161665.9,
+      "error": null,
+      "escalated": false,
+      "tool_selection_ok": true,
+      "citation_accuracy": 1.0,
+      "groundedness": 0.5,
+      "workflow_completed": true,
+      "behavior_expected": "answer",
+      "behavior_ok": null,
+      "cold": false
+    },
+    {
+      "id": "tool-05",
+      "category": "tool-requiring",
+      "message": "I have a question about my FMLA eligibility. Please open an HR ticket and draft an email to hr@acmecorp.example.com about it.",
+      "answer": "I\u2019ve created a mock HR ticket for your FMLA eligibility question and drafted an email to HR for you to review.\n\n**Mock HR Ticket**\n- Ticket ID: HR-0001  \n- Employee ID: E004  \n- Type: leave  \n- Description: Employee E004 inquiring about FMLA eligibility.  \n- Status: open (mock)  \n\n**Draft Email (not sent)**\n- To: hr@acmecorp.example.com  \n- Subject: Inquiry Regarding FMLA Eligibility (Ticket HR-0001)  \n- Body:  \n```\nHello,\n\nI am employee E004 and I have a question regarding my eligibility for Family and Medical Leave Act (FMLA) leave. Could you please provide clarification on the eligibility criteria, the documentation required to support a request, and the next steps I should follow?\n\nThank you for your assistance.\n\n[Your name]\n```\n\nPlease note: the ticket is a mock (in\u2011memory only) and the email is a draft\u2014nothing has been filed or sent yet. You can review the draft and, if it looks correct, send it manually to HR. Let me know if you\u2019d like any changes or additional assistance.",
+      "citations": [],
+      "tools_used": [
+        "create_mock_hr_ticket",
+        "draft_hr_email"
+      ],
+      "trace": [
+        {
+          "step": 1,
+          "tool": "create_mock_hr_ticket",
+          "arguments": {
+            "employee_id": "E004",
+            "type": "leave",
+            "description": "Employee E004 inquiring about FMLA eligibility."
+          },
+          "ok": true,
+          "result_summary": "ok: ticket_id, employee_id, type, description, status, mock",
+          "duration_ms": 9.3
+        },
+        {
+          "step": 2,
+          "tool": "draft_hr_email",
+          "arguments": {
+            "to": "hr@acmecorp.example.com",
+            "subject": "Inquiry Regarding FMLA Eligibility (Ticket HR-0001)",
+            "context": "Employee E004 has a question about their eligibility for Family and Medical Leave Act (FMLA) leave and requests clarification on eligibility criteria, required documentation, and next steps. Please advise."
+          },
+          "ok": true,
+          "result_summary": "ok: to, subject, body, sent, llm_generated",
+          "duration_ms": 5203.5
+        }
+      ],
+      "latency_ms": 234881.8,
+      "error": null,
+      "escalated": true,
+      "tool_selection_ok": true,
+      "citation_accuracy": null,
+      "groundedness": null,
+      "workflow_completed": true,
+      "behavior_expected": "escalate",
+      "behavior_ok": true,
+      "cold": false
+    },
+    {
+      "id": "tool-06",
+      "category": "tool-requiring",
+      "message": "What is E002's current PTO balance?",
+      "answer": "I\u2019m not authorized to view another employee\u2019s PTO balance. You can only access your own records. If you need E002\u2019s PTO information, please ask them directly or contact HR for assistance.",
+      "citations": [],
+      "tools_used": [
+        "check_pto_balance"
+      ],
+      "trace": [
+        {
+          "step": 1,
+          "tool": "check_pto_balance",
+          "arguments": {
+            "employee_id": "E002"
+          },
+          "ok": false,
+          "result_summary": "error: not_authorized",
+          "duration_ms": 0.0
+        }
+      ],
+      "latency_ms": 231954.5,
+      "error": null,
+      "escalated": false,
+      "tool_selection_ok": true,
+      "citation_accuracy": null,
+      "groundedness": null,
+      "workflow_completed": false,
+      "behavior_expected": "refuse_other_employee",
+      "behavior_ok": true,
+      "cold": false
+    },
+    {
+      "id": "ambiguous-01",
+      "category": "ambiguous",
+      "message": "How much PTO do I have?",
+      "answer": "I need your employee ID to look up your PTO balance. Could you please provide it?",
+      "citations": [],
+      "tools_used": [],
+      "trace": [],
+      "latency_ms": 125021.5,
+      "error": null,
+      "escalated": false,
+      "tool_selection_ok": true,
+      "citation_accuracy": null,
+      "groundedness": null,
+      "workflow_completed": true,
+      "behavior_expected": "clarify",
+      "behavior_ok": true,
+      "cold": false
+    },
+    {
+      "id": "ambiguous-02",
+      "category": "ambiguous",
+      "message": "Can I take some time off?",
+      "answer": "I\u2019d be happy to help you check your PTO eligibility and balance, but I need your employee ID to look up your personal information. Could you please provide your employee ID?",
+      "citations": [],
+      "tools_used": [
+        "search_policy_documents"
+      ],
+      "trace": [
+        {
+          "step": 1,
+          "tool": "search_policy_documents",
+          "arguments": {
+            "query": "PTO time off policy accrual eligibility request",
+            "top_k": 5
+          },
+          "ok": true,
+          "result_summary": "5 result(s)",
+          "duration_ms": 42.8
+        }
+      ],
+      "latency_ms": 135723.6,
+      "error": null,
+      "escalated": false,
+      "tool_selection_ok": false,
+      "citation_accuracy": null,
+      "groundedness": null,
+      "workflow_completed": true,
+      "behavior_expected": "clarify",
+      "behavior_ok": false,
+      "cold": false
+    },
+    {
+      "id": "ambiguous-03",
+      "category": "ambiguous",
+      "message": "I want to request something from HR.",
+      "answer": "Hello! I'd be happy to help you request something from HR. To assist you properly, could you please clarify what specific request you'd like to make? For example, are you looking to:\n\n- Check your PTO balance or request time off?\n- Inquire about benefits enrollment or coverage?\n- Update your personal information or profile?\n- Ask about a specific HR policy?\n- Or something else entirely?\n\nOnce you let me know what you need, I can guide you through the appropriate steps and use the relevant tools to help. If your request requires accessing your personal employee information, I'll also need your employee ID to proceed.",
+      "citations": [],
+      "tools_used": [],
+      "trace": [],
+      "latency_ms": 63958.6,
+      "error": null,
+      "escalated": false,
+      "tool_selection_ok": true,
+      "citation_accuracy": null,
+      "groundedness": null,
+      "workflow_completed": true,
+      "behavior_expected": "clarify",
+      "behavior_ok": true,
+      "cold": false
+    },
+    {
+      "id": "ambiguous-04",
+      "category": "ambiguous",
+      "message": "What's the policy on that?",
+      "answer": "Could you clarify which policy you\u2019re asking about?",
+      "citations": [],
+      "tools_used": [],
+      "trace": [],
+      "latency_ms": 1191.6,
+      "error": null,
+      "escalated": false,
+      "tool_selection_ok": true,
+      "citation_accuracy": null,
+      "groundedness": null,
+      "workflow_completed": true,
+      "behavior_expected": "clarify",
+      "behavior_ok": true,
+      "cold": false
+    },
+    {
+      "id": "outofscope-01",
+      "category": "out-of-scope",
+      "message": "What's the best pizza topping?",
+      "answer": "I\u2019m sorry, but I can only help with HR\u2011related questions at Acme Corp. If you have an HR inquiry\u2014such as about PTO, benefits, policies, or employee information\u2014please let me know and I\u2019ll be glad to assist.",
+      "citations": [],
+      "tools_used": [],
+      "trace": [],
+      "latency_ms": 17086.2,
+      "error": null,
+      "escalated": false,
+      "tool_selection_ok": true,
+      "citation_accuracy": null,
+      "groundedness": null,
+      "workflow_completed": true,
+      "behavior_expected": "decline",
+      "behavior_ok": true,
+      "cold": false
+    },
+    {
+      "id": "outofscope-02",
+      "category": "out-of-scope",
+      "message": "What's the weather like today?",
+      "answer": "I\u2019m sorry, but I can only help with HR-related questions at Acme Corp. For weather information, please check a weather service or website. If you have any HR questions\u2014such as about policies, PTO, benefits, or other workplace matters\u2014feel free to ask!",
+      "citations": [],
+      "tools_used": [],
+      "trace": [],
+      "latency_ms": 4115.3,
+      "error": null,
+      "escalated": false,
+      "tool_selection_ok": true,
+      "citation_accuracy": null,
+      "groundedness": null,
+      "workflow_completed": true,
+      "behavior_expected": "decline",
+      "behavior_ok": true,
+      "cold": false
+    },
+    {
+      "id": "outofscope-03",
+      "category": "out-of-scope",
+      "message": "Can you write a Python script to sort a list of numbers?",
+      "answer": "I\u2019m sorry, but I can only help with HR\u2011related questions. If you have any questions about Acme Corp policies, benefits, PTO, or other HR matters, please let me know!",
+      "citations": [],
+      "tools_used": [],
+      "trace": [],
+      "latency_ms": 5037.6,
+      "error": null,
+      "escalated": false,
+      "tool_selection_ok": true,
+      "citation_accuracy": null,
+      "groundedness": null,
+      "workflow_completed": true,
+      "behavior_expected": "decline",
+      "behavior_ok": true,
+      "cold": false
+    },
+    {
+      "id": "outofscope-04",
+      "category": "out-of-scope",
+      "message": "What is Acme Corp's current stock price?",
+      "answer": "I\u2019m sorry, but I can only help with HR\u2011related questions at Acme Corp. I don\u2019t have access to stock price information. If you have an HR question\u2014such as about policies, benefits, PTO, or other employee matters\u2014please let me know and I\u2019ll be glad to assist.",
+      "citations": [],
+      "tools_used": [],
+      "trace": [],
+      "latency_ms": 4322.4,
+      "error": null,
+      "escalated": false,
+      "tool_selection_ok": true,
+      "citation_accuracy": null,
+      "groundedness": null,
+      "workflow_completed": true,
+      "behavior_expected": "decline",
+      "behavior_ok": true,
+      "cold": false
+    }
+  ]
+}

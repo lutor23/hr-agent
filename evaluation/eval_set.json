@@ -1,0 +1,252 @@
+[
+  {
+    "id": "straightforward-01",
+    "category": "straightforward",
+    "message": "How many PTO days do I get per year after 5 years of service?",
+    "employee_id": null,
+    "expected_doc_ids": ["POL-HR-001"],
+    "expected_tools": ["search_policy_documents"],
+    "expected_behavior": "answer",
+    "notes": "PTO Accrual Rates: 5+ years = 20 days (160 hrs)."
+  },
+  {
+    "id": "straightforward-02",
+    "category": "straightforward",
+    "message": "What's the minimum password length required for company systems?",
+    "employee_id": null,
+    "expected_doc_ids": ["POL-IT-001"],
+    "expected_tools": ["search_policy_documents"],
+    "expected_behavior": "answer",
+    "notes": "Password and Authentication Requirements: 14 characters minimum."
+  },
+  {
+    "id": "straightforward-03",
+    "category": "straightforward",
+    "message": "What happens on Day 1 for a new employee?",
+    "employee_id": null,
+    "expected_doc_ids": ["POL-HR-005"],
+    "expected_tools": ["search_policy_documents"],
+    "expected_behavior": "answer",
+    "notes": "Day 1 Activities: welcome email, IT setup, HR orientation, manager meeting, security training."
+  },
+  {
+    "id": "straightforward-04",
+    "category": "straightforward",
+    "message": "Is business class allowed for a flight under 6 hours?",
+    "employee_id": null,
+    "expected_doc_ids": ["POL-HR-003"],
+    "expected_tools": ["search_policy_documents"],
+    "expected_behavior": "answer",
+    "notes": "Travel Expenses: economy required under 6 hours; business/premium economy only for 6+ hour flights or documented medical need."
+  },
+  {
+    "id": "straightforward-05",
+    "category": "straightforward",
+    "message": "What standard laptop do full-time engineers receive?",
+    "employee_id": null,
+    "expected_doc_ids": ["POL-HR-008"],
+    "expected_tools": ["search_policy_documents"],
+    "expected_behavior": "answer",
+    "notes": "Standard Equipment by Role: MacBook Pro 14\" for engineers/designers."
+  },
+  {
+    "id": "straightforward-06",
+    "category": "straightforward",
+    "message": "Is Juneteenth a paid company holiday?",
+    "employee_id": null,
+    "expected_doc_ids": ["POL-HR-009"],
+    "expected_tools": ["search_policy_documents"],
+    "expected_behavior": "answer",
+    "notes": "2025 Company Holiday Schedule lists Juneteenth National Independence Day."
+  },
+  {
+    "id": "multidoc-01",
+    "category": "multi-doc",
+    "message": "If I work remotely, what security requirements do I need to follow for my home network and passwords?",
+    "employee_id": null,
+    "expected_doc_ids": ["POL-HR-002", "POL-IT-001"],
+    "expected_tools": ["search_policy_documents"],
+    "expected_behavior": "answer",
+    "notes": "Spans Remote Work Policy (Data Security While Remote / Home Office Requirements) and Data Security Policy (Password/Network Security)."
+  },
+  {
+    "id": "multidoc-02",
+    "category": "multi-doc",
+    "message": "What equipment will I get on my first day, and when do I need to finish security training?",
+    "employee_id": null,
+    "expected_doc_ids": ["POL-HR-005", "POL-HR-008"],
+    "expected_tools": ["search_policy_documents"],
+    "expected_behavior": "answer",
+    "notes": "Onboarding Policy (Day 1 Activities: security training due Day 1) + Equipment Policy (standard package)."
+  },
+  {
+    "id": "multidoc-03",
+    "category": "multi-doc",
+    "message": "I need 3 weeks off for a medical procedure. Should I use PTO or file for medical leave, and how are they different?",
+    "employee_id": null,
+    "expected_doc_ids": ["POL-HR-001", "POL-HR-010"],
+    "expected_tools": ["search_policy_documents"],
+    "expected_behavior": "answer",
+    "notes": "PTO Policy (accrual/balance, paid) vs Leave of Absence Policy (FMLA, unpaid job-protected)."
+  },
+  {
+    "id": "multidoc-04",
+    "category": "multi-doc",
+    "message": "Can I get reimbursed for home office equipment as a remote employee?",
+    "employee_id": null,
+    "expected_doc_ids": ["POL-HR-003", "POL-HR-002"],
+    "expected_tools": ["search_policy_documents"],
+    "expected_behavior": "answer",
+    "notes": "Expense Reimbursement Policy (Home Office Equipment) + Remote Work Policy (Home Office Requirements / Expense Reimbursement for Remote Work)."
+  },
+  {
+    "id": "multidoc-05",
+    "category": "multi-doc",
+    "message": "If I violate the data security policy while working remotely, could I lose my remote work privileges?",
+    "employee_id": null,
+    "expected_doc_ids": ["POL-IT-001", "POL-HR-002"],
+    "expected_tools": ["search_policy_documents"],
+    "expected_behavior": "answer",
+    "notes": "Data Security Policy (Consequences of Violation) + Remote Work Policy (Revocation of Remote Work Privileges)."
+  },
+  {
+    "id": "tool-01",
+    "category": "tool-requiring",
+    "message": "How much PTO do I have available right now?",
+    "employee_id": "E001",
+    "expected_doc_ids": [],
+    "expected_tools": ["check_pto_balance"],
+    "expected_behavior": "answer",
+    "notes": "E001 (Alice Johnson) has 96 available_hours in mock_data/pto_balances.json."
+  },
+  {
+    "id": "tool-02",
+    "category": "tool-requiring",
+    "message": "What medical plan am I enrolled in, and do I have an HSA contribution?",
+    "employee_id": "E002",
+    "expected_doc_ids": [],
+    "expected_tools": ["lookup_benefits_status"],
+    "expected_behavior": "answer",
+    "notes": "E002 (Marcus Lee) is on Acme HDHP with hsa=true in mock_data/benefits.json."
+  },
+  {
+    "id": "tool-03",
+    "category": "tool-requiring",
+    "message": "What's my job title and who is my manager?",
+    "employee_id": "E003",
+    "expected_doc_ids": [],
+    "expected_tools": ["lookup_employee_profile"],
+    "expected_behavior": "answer",
+    "notes": "E003 (Priya Patel) is Product Designer, manager E010."
+  },
+  {
+    "id": "tool-04",
+    "category": "tool-requiring",
+    "message": "Can I take two weeks off in December? What's my balance and what's the process?",
+    "employee_id": "E001",
+    "expected_doc_ids": ["POL-HR-001"],
+    "expected_tools": ["check_pto_balance", "search_policy_documents"],
+    "expected_behavior": "answer",
+    "notes": "Multi-step workflow: PTO balance + PTO Request Process (extended leave, 10+ business days)."
+  },
+  {
+    "id": "tool-05",
+    "category": "tool-requiring",
+    "message": "I have a question about my FMLA eligibility. Please open an HR ticket and draft an email to hr@acmecorp.example.com about it.",
+    "employee_id": "E004",
+    "expected_doc_ids": [],
+    "expected_tools": ["create_mock_hr_ticket", "draft_hr_email"],
+    "expected_behavior": "escalate",
+    "notes": "Should open a mock ticket and draft (never send) an email; escalated=true expected."
+  },
+  {
+    "id": "tool-06",
+    "category": "tool-requiring",
+    "message": "What is E002's current PTO balance?",
+    "employee_id": "E001",
+    "expected_doc_ids": [],
+    "expected_tools": ["check_pto_balance"],
+    "expected_behavior": "refuse_other_employee",
+    "notes": "E001 is signed in but asking about E002's data; the own-records-only guard should block this."
+  },
+  {
+    "id": "ambiguous-01",
+    "category": "ambiguous",
+    "message": "How much PTO do I have?",
+    "employee_id": null,
+    "expected_doc_ids": [],
+    "expected_tools": [],
+    "expected_behavior": "clarify",
+    "notes": "No employee ID given; the agent should ask for it rather than guessing or calling a tool with a made-up ID."
+  },
+  {
+    "id": "ambiguous-02",
+    "category": "ambiguous",
+    "message": "Can I take some time off?",
+    "employee_id": null,
+    "expected_doc_ids": [],
+    "expected_tools": [],
+    "expected_behavior": "clarify",
+    "notes": "Vague: no dates, no employee ID. Should ask a clarifying question rather than dumping the whole PTO policy unprompted."
+  },
+  {
+    "id": "ambiguous-03",
+    "category": "ambiguous",
+    "message": "I want to request something from HR.",
+    "employee_id": null,
+    "expected_doc_ids": [],
+    "expected_tools": [],
+    "expected_behavior": "clarify",
+    "notes": "No specifics at all. Should ask what the employee needs, not guess or escalate."
+  },
+  {
+    "id": "ambiguous-04",
+    "category": "ambiguous",
+    "message": "What's the policy on that?",
+    "employee_id": "E001",
+    "expected_doc_ids": [],
+    "expected_tools": [],
+    "expected_behavior": "clarify",
+    "notes": "\"That\" has no referent. Should ask what topic the employee means."
+  },
+  {
+    "id": "outofscope-01",
+    "category": "out-of-scope",
+    "message": "What's the best pizza topping?",
+    "employee_id": null,
+    "expected_doc_ids": [],
+    "expected_tools": [],
+    "expected_behavior": "decline",
+    "notes": "Not an HR topic; not in the corpus. Should say it can't help rather than making something up."
+  },
+  {
+    "id": "outofscope-02",
+    "category": "out-of-scope",
+    "message": "What's the weather like today?",
+    "employee_id": null,
+    "expected_doc_ids": [],
+    "expected_tools": [],
+    "expected_behavior": "decline",
+    "notes": "Outside the HR policy corpus entirely."
+  },
+  {
+    "id": "outofscope-03",
+    "category": "out-of-scope",
+    "message": "Can you write a Python script to sort a list of numbers?",
+    "employee_id": null,
+    "expected_doc_ids": [],
+    "expected_tools": [],
+    "expected_behavior": "decline",
+    "notes": "Not an HR question at all; tests that the agent doesn't drift into being a general-purpose assistant."
+  },
+  {
+    "id": "outofscope-04",
+    "category": "out-of-scope",
+    "message": "What is Acme Corp's current stock price?",
+    "employee_id": null,
+    "expected_doc_ids": [],
+    "expected_tools": [],
+    "expected_behavior": "decline",
+    "notes": "Not covered by the HR policy corpus or the mock employee/tool data."
+  }
+]
