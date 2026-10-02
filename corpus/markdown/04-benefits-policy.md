@@ -126,7 +126,28 @@ Upon separation from employment, employees may continue health coverage under **
 
 ---
 
-## 9. Contact
+## 9. Flexible Spending Accounts (FSA)
+
+- **Healthcare FSA:** Employees may elect to set aside up to **$3,300/year** (2025 IRS limit) in pre-tax dollars for eligible medical, dental, and vision expenses not covered by insurance. Available regardless of which medical plan the employee elects, including the HDHP (subject to IRS rules limiting HDHP enrollees to a Limited-Purpose FSA for dental/vision only).
+- **Dependent Care FSA:** Employees may set aside up to **$5,000/year** (per household) in pre-tax dollars for eligible child care or elder care expenses, enabling the employee (and spouse, if married) to work.
+- FSA elections are made during open enrollment (Section 7) and are generally locked in for the plan year except following a Qualifying Life Event.
+- Healthcare FSA offers a **$660 carryover** into the following year; amounts above the carryover limit are forfeited under the IRS "use it or lose it" rule. The Dependent Care FSA has no carryover.
+- FSA debit cards and reimbursement claims are administered through **WageWorks**; claims must include an itemized receipt.
+
+---
+
+## 10. Wellness Program
+
+- Acme Corp's wellness program, administered through the **Virgin Pulse** platform, offers an annual **$300 wellness incentive** for employees who complete a biometric screening and accumulate a threshold number of wellness activity points (steps, workouts, mindfulness sessions) over the plan year.
+- The incentive is paid as a contribution to the employee's HSA (if enrolled in the Acme HDHP) or as a payroll bonus (taxable) for employees on other plans.
+- Gym membership discounts are available through the wellness platform's partner network at no direct cost to Acme Corp beyond the platform subscription.
+- Biometric screening data is handled by the third-party wellness vendor under HIPAA protections; Acme Corp receives only aggregate, de-identified participation data, never individual health results.
+- The wellness program is entirely voluntary; non-participation has no effect on an employee's health plan enrollment, premiums, or any other benefit described in this policy.
+
+---
+
+## 11. Contact
 
 Benefits questions: **benefits@acmecorp.example.com** or the Benefits Hub in Workday.  
-EAP (confidential): 1-800-555-LYRA (Lyra Health)
+EAP (confidential): 1-800-555-LYRA (Lyra Health)  
+FSA claims and questions: WageWorks, via the link on the Benefits Hub.

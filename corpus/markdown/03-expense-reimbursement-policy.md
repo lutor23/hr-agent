@@ -115,7 +115,17 @@ The following are explicitly **not** reimbursable:
 
 ---
 
-## 9. Contact
+## 9. International Travel Expenses
+
+- International airfare follows the same class-of-service rules as Section 3.1 (economy under 6 hours, premium economy/business for 6+ hours), applied to total flight duration including connections.
+- Foreign currency expenses are reimbursed in USD at the exchange rate in effect on the date of purchase, as calculated automatically by Concur; employees should retain original receipts in the local currency.
+- Employees traveling internationally for business should enroll in Acme Corp's travel assistance program (through TravelPerk) before departure, which provides 24/7 emergency travel and medical assistance coverage at no cost to the employee.
+- Visa fees, required vaccinations, and travel-health insurance for approved international business trips are reimbursable with manager pre-approval and receipts; personal travel extensions attached to a business trip are not reimbursable and must be clearly itemized separately in Concur.
+- Employees should consult the Remote Work Policy (POL-HR-002 §6) and, for immigration-sensitive travel, Legal, before any international trip that could be construed as international remote work rather than short-term business travel.
+
+---
+
+## 10. Contact
 
 Expense policy questions: **finance@acmecorp.example.com**  
 Ergonomic exception requests: **hr@acmecorp.example.com**

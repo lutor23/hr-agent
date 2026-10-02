@@ -114,7 +114,30 @@ All employees must acknowledge this policy annually during the compliance traini
 
 ---
 
-## 10. Contact
+## 10. Workplace Relationships
+
+- Romantic or dating relationships between coworkers are not prohibited, but any relationship between a manager and a direct report (or anyone in that manager's reporting chain) must be disclosed to HR immediately, consistent with the conflict-of-interest disclosure process in the Business Ethics Policy (POL-HR-017 §2).
+- Once disclosed, HR and the relevant department head will put a management plan in place, which typically involves reassigning reporting lines so that neither party supervises, evaluates, or makes compensation decisions about the other.
+- Failure to disclose a reporting-line relationship, or continuing to supervise a partner after being asked to transition reporting lines, is itself a policy violation subject to the disciplinary actions in Section 6.
+- This section does not apply to coworkers with no reporting relationship between them; ordinary workplace courtesy and the harassment provisions in Sections 3–4 still apply to any workplace relationship.
+
+---
+
+## 11. Bereavement Leave Detail
+
+- Acme Corp provides paid bereavement leave as summarized in the PTO Policy (POL-HR-001 §10): 5 paid days for immediate family, 2 paid days for extended family, in addition to the employee's regular PTO balance.
+- Bereavement leave does not need to be taken consecutively and may be split across the days surrounding a funeral, memorial service, and related travel, with manager agreement.
+- Employees needing more time than the standard allotment may use available PTO, unpaid leave, or in qualifying cases, leave under the Parental and Family Leave Policy (POL-HR-010) where the circumstances overlap with a covered family/medical need.
+
+---
+
+## 12. Acknowledgment Requirement
+
+All employees must acknowledge this policy annually during the compliance training cycle in the LMS. New hires must acknowledge during Day 1 onboarding.
+
+---
+
+## 13. Contact
 
 HR Business Partners: **hr@acmecorp.example.com**  
 Ethics Hotline (anonymous): **1-800-555-ETHIC**  

@@ -4,10 +4,10 @@ from app import config
 from app.loaders import load_corpus
 
 
-def test_loads_all_ten_documents():
+def test_loads_all_documents():
     chunks = load_corpus(config.CORPUS_DIR)
     doc_ids = {c.doc_id for c in chunks}
-    assert len(doc_ids) == 10
+    assert len(doc_ids) == 17
 
 
 def test_covers_all_three_formats():

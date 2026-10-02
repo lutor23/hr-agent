@@ -20,16 +20,20 @@ SMOKE_QUERIES = {
     "How do I get reimbursed for a business trip?": "POL-HR-003",
     "Which medical plans does the company offer?": "POL-HR-004",
     "How long is parental leave?": "POL-HR-010",
+    "How often are performance reviews conducted?": "POL-HR-011",
+    "What is Acme Corp's gift and entertainment policy?": "POL-HR-017",
 }
 
 
 # Chunks embedded per upsert() call during ingest. The first real Render deploy was
-# OOM-killed (512Mi limit) embedding all 97 chunks in one batch: measured locally,
-# batch=97 peaks near 900MB regardless of embedding library, because onnxruntime's/
-# torch's scratch memory for a batch scales with its size. Below batch=4 the peak
-# stops shrinking much (~300MB floor: onnxruntime's own fixed overhead) - so 4 is
-# picked for reasonable ingest speed, not because it's the minimum. Not user
-# -configurable: this is a memory-budget constant, not a deployment setting.
+# OOM-killed (512Mi limit) embedding all 97 chunks (the corpus size at the time) in
+# one batch: measured locally, a single large batch peaks near 900MB regardless of
+# embedding library, because onnxruntime's/torch's scratch memory for a batch scales
+# with its size. Below batch=4 the peak stops shrinking much (~300MB floor: onnxruntime's
+# own fixed overhead) - so 4 is picked for reasonable ingest speed, not because it's the
+# minimum. Still correct after the corpus grew (177 chunks as of the Day 13 corpus
+# expansion) since batching bounds peak memory per-call, independent of total chunk count.
+# Not user-configurable: this is a memory-budget constant, not a deployment setting.
 INGEST_BATCH_SIZE = 4
 
 

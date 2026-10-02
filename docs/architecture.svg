@@ -55,9 +55,9 @@
   <rect x="150" y="488" width="330" height="140" rx="8" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
   <text x="315" y="514" text-anchor="middle" font-size="15" font-weight="700" fill="#4c1d95">RAG index</text>
   <text x="315" y="536" text-anchor="middle" font-size="12.5" fill="#4c1d95">ChromaDB + ONNX MiniLM-L6-v2 embeddings</text>
-  <text x="315" y="556" text-anchor="middle" font-size="12.5" fill="#4c1d95">corpus/ — 10 policy documents</text>
-  <text x="315" y="576" text-anchor="middle" font-size="12.5" fill="#4c1d95">(8 Markdown, 1 HTML, 1 PDF)</text>
-  <text x="315" y="596" text-anchor="middle" font-size="12.5" fill="#4c1d95">97 heading-aware chunks</text>
+  <text x="315" y="556" text-anchor="middle" font-size="12.5" fill="#4c1d95">corpus/ — 17 policy documents</text>
+  <text x="315" y="576" text-anchor="middle" font-size="12.5" fill="#4c1d95">(15 Markdown, 1 HTML, 1 PDF)</text>
+  <text x="315" y="596" text-anchor="middle" font-size="12.5" fill="#4c1d95">177 heading-aware chunks</text>
   <text x="315" y="616" text-anchor="middle" font-size="12.5" fill="#4c1d95">cosine similarity, score ≥ 0.25</text>
 
   <!-- Mock employee data -->

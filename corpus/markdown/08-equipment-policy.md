@@ -107,7 +107,26 @@ All full-time employees receive a **standard equipment package** at the start of
 
 ---
 
-## 9. Contact
+## 9. Personal Device Reimbursement (BYOD Stipend)
+
+- Employees who prefer to use a personal mobile phone for work purposes instead of requesting a company-issued phone may opt into a **$50/month BYOD stipend**, paid through payroll, in lieu of a company device.
+- Enrolling in the BYOD stipend requires installing the approved Mobile Device Management (MDM) profile on the personal device, per the Data Security and Acceptable Use Policy (POL-IT-001 §5.2 and §12); the stipend is suspended if the MDM profile is removed.
+- The BYOD stipend is intended to cover a reasonable portion of the employee's existing phone plan and is not conditioned on providing itemized phone bills, unlike the general expense reimbursement process in the Expense Reimbursement Policy (POL-HR-003).
+- Employees may not enroll in both a company-issued phone and the BYOD stipend simultaneously; switching between the two requires a request through Jira ITHELP and takes effect at the start of the next payroll cycle.
+- The BYOD stipend does not apply to laptops; all employees performing substantial computer-based work receive a company-issued laptop per Section 2, as personal laptops are not permitted to access confidential company systems per POL-IT-001 §5.2.
+
+---
+
+## 10. Software Licensing Detail and License Audits
+
+- Named-user software licenses (e.g., individual seats for design, analytics, or developer tools) are assigned and tracked centrally by IT; employees must not share a named-user license or its credentials with a colleague, consistent with the credential-sharing prohibition in the Data Security Policy (POL-IT-001 §4).
+- IT conducts a **quarterly software license audit** to reclaim unused seats (no login activity in 90+ days) and ensure compliance with vendor license terms; employees are notified before a seat is reclaimed and may request reinstatement if still actively needed.
+- Open-source software may be used in Acme Corp products only after a license-compatibility review by Engineering leadership and Legal, to confirm the open-source license (MIT, Apache 2.0, GPL, etc.) is compatible with Acme Corp's distribution model; this review is tracked through the standard software procurement request process in Section 8.
+- Departing employees' named-user licenses are reclaimed by IT as part of the access-revocation process described in the Termination and Offboarding Policy (POL-HR-013 §6), effective the same day as other system access.
+
+---
+
+## 11. Contact
 
 IT Helpdesk: **helpdesk@acmecorp.example.com** or Jira ITHELP  
 IT Security (loss/theft): **security@acmecorp.example.com** or ext. 5001  

@@ -121,7 +121,23 @@ Acme Corp reserves the right to revoke remote work arrangements at any time with
 
 ---
 
-## 11. Contact
+## 11. Coworking Space Stipend
+
+- Fully remote employees who do not have a suitable dedicated home workspace (per Section 8) may request a **coworking space membership stipend of up to $250/month**, in lieu of the home office setup stipend described in Section 9.
+- Requests are submitted through the standard expense process (POL-HR-003) with manager approval; the coworking stipend and the home internet subsidy (Section 9) may both be used together, but the one-time home office equipment stipend does not apply to employees using a coworking stipend.
+- Acme Corp does not reimburse coworking day-passes used only occasionally (fewer than 10 days/month); employees with occasional coworking needs should use the standard travel/incidental expense categories in POL-HR-003 instead.
+
+---
+
+## 12. Time Zone and Core Hours Expectations
+
+- Remote employees may work flexible hours but are expected to maintain at least **4 hours of overlap** with their team's designated core hours, typically 10:00 AM–2:00 PM in the team's primary time zone, to support synchronous collaboration and meetings.
+- Employees working more than 3 time zones away from their manager or primary team should agree on specific overlap hours in writing as part of their Remote Work Agreement (Section 3.1).
+- Scheduling meetings that require an employee to join substantially outside their local working hours on a recurring basis should be avoided where possible; occasional exceptions (quarterly all-hands, cross-region launches) are expected and are not subject to this guideline.
+
+---
+
+## 13. Contact
 
 - Remote work approval requests: submit via Workday or email **hr@acmecorp.example.com**
 - Legal questions (out-of-state, international): **legal@acmecorp.example.com**

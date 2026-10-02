@@ -26,10 +26,10 @@ Or open the chat UI directly and try the example prompts.
 Render's free tier spins the service down after inactivity and has **no persistent disk**, so every cold start re-embeds the entire policy corpus from scratch — there's no way to skip this on the free tier. In practice:
 
 - The service **binds its port and starts responding within ~1 second** of a cold start — `/health` and `/chat` are reachable immediately, they just report the index isn't ready yet.
-- Full ingestion (97 chunks) takes **roughly 2 minutes** on Render's free-tier CPU, versus ~1.5 seconds on a typical laptop — the shared CPU is genuinely slow for this.
-- `/health`'s `chroma_docs` count climbs incrementally during that window (e.g. `8`, `12`, `16`, ... `97`) since ingestion is batched (`INGEST_BATCH_SIZE=4` in `app/ingest.py`) to stay within the free tier's 512MB memory limit — batching one huge embedding call was what originally OOM-killed this deployment (see `CLAUDE.md`'s Day 8 entry for the full incident history).
-- **Known quirk:** `/health` reports `"status": "ok"` as soon as `chroma_docs > 0`, even if that's a partial count mid-build (e.g. `8` out of `97`). A `/chat` request during this window will get answers grounded only in whatever fraction of the corpus is indexed so far, not an error — it isn't wrong, just incomplete for those ~2 minutes. Waiting for `chroma_docs` to reach `97` (or just waiting ~2 minutes after a cold start) avoids this.
-- Once warm, the service stays warm under normal traffic and `chroma_docs` stays at `97`.
+- Full ingestion (177 chunks) takes **roughly 2-3 minutes** on Render's free-tier CPU, versus a few seconds on a typical laptop — the shared CPU is genuinely slow for this.
+- `/health`'s `chroma_docs` count climbs incrementally during that window (e.g. `8`, `12`, `16`, ... `177`) since ingestion is batched (`INGEST_BATCH_SIZE=4` in `app/ingest.py`) to stay within the free tier's 512MB memory limit — batching one huge embedding call was what originally OOM-killed this deployment (see `CLAUDE.md`'s Day 8 entry for the full incident history).
+- **Known quirk:** `/health` reports `"status": "ok"` as soon as `chroma_docs > 0`, even if that's a partial count mid-build (e.g. `8` out of `177`). A `/chat` request during this window will get answers grounded only in whatever fraction of the corpus is indexed so far, not an error — it isn't wrong, just incomplete for those first couple of minutes. Waiting for `chroma_docs` to reach `177` (or just waiting ~2-3 minutes after a cold start) avoids this.
+- Once warm, the service stays warm under normal traffic and `chroma_docs` stays at `177`.
 
 ## Architecture note specific to this deployment
 

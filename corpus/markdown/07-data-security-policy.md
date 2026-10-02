@@ -123,7 +123,27 @@ Violations of this policy may result in disciplinary action up to and including 
 
 ---
 
-## 11. Contact
+## 11. Data Retention and Deletion
+
+- Company email and Slack messages are retained for **3 years** by default under Acme Corp's records retention schedule, after which they are automatically purged unless subject to a legal hold.
+- HR records (personnel files, performance reviews, compensation history) are retained for **7 years** after an employee's separation, consistent with applicable employment-law recordkeeping requirements.
+- Financial and tax-related records are retained for **7 years**, per IRS and standard audit requirements.
+- An employee placed under a **legal hold** (in connection with litigation, a government investigation, or an internal investigation) must preserve all related data regardless of the standard retention schedule, and must not delete anything until Legal lifts the hold.
+- Departing employees' data handling is governed jointly by this policy and the Termination and Offboarding Policy (POL-HR-013 §6); IT exports and archives a departing employee's mailbox before disabling the account, consistent with the records retention schedule above.
+
+---
+
+## 12. Mobile Device Management (MDM) and Cloud Storage Detail
+
+- All company-issued mobile phones and tablets are enrolled in Acme Corp's MDM platform (Jamf for iOS, Intune for Android), which enforces passcode requirements, remote wipe capability, and automatic app configuration.
+- Lost or stolen company-issued mobile devices must be reported to **helpdesk@acmecorp.example.com** immediately; IT will remote-wipe the device within 1 hour of the report where the device has network connectivity.
+- Approved cloud storage and collaboration tools are limited to **Box** and **SharePoint** (Acme-managed tenants only); use of personal cloud storage accounts (personal Google Drive, Dropbox, iCloud, OneDrive) for any company data, even Public or Internal classification data, is prohibited to prevent configuration drift and shadow-IT risk.
+- Requests to sanction a new cloud or SaaS tool not on the approved list go through IT Security review via **security@acmecorp.example.com**, which evaluates the vendor's own security posture (SOC 2 report, data residency, encryption) before approval.
+- Third-party browser extensions and AI tools that process company data (including external AI assistants or coding tools) must be reviewed and approved by IT Security before use with any Confidential or Restricted data, consistent with the data classification table in Section 3.
+
+---
+
+## 13. Contact
 
 Information Security: **security@acmecorp.example.com**  
 IT Helpdesk: **helpdesk@acmecorp.example.com** or ext. 5000

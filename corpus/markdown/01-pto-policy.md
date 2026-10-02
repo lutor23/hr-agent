@@ -90,6 +90,24 @@ PTO may not be used during a resignation notice period unless approved by HR and
 
 ---
 
-## 9. Contact
+## 9. Sabbatical Program
+
+- Employees with **7 or more years** of continuous tenure are eligible to apply for an unpaid or partially-paid sabbatical of up to **8 consecutive weeks**, separate from and in addition to standard PTO accrual.
+- Sabbatical requests must be submitted at least **90 days in advance** through HR, with the employee's manager and department head both signing off on a coverage plan for the absence.
+- Acme Corp pays **50% of base salary** during the first 4 weeks of an approved sabbatical for employees with 10+ years of tenure; sabbaticals for employees with 7–9 years of tenure are unpaid but job-protected, with benefits continuing on the same terms as standard leave described in Section 8.
+- An employee may take no more than one sabbatical in any rolling 5-year period. Sabbatical time does not accrue PTO, and unused PTO should generally be used before a sabbatical begins rather than during it.
+- Returning employees are guaranteed reinstatement to their same or an equivalent role, consistent with the job-protection terms in the Parental and Family Leave Policy (POL-HR-010 §5).
+
+---
+
+## 10. Jury Duty and Bereavement Pay Details
+
+- **Jury duty:** Acme Corp provides full pay (not drawn from PTO) for up to **10 business days** of jury duty per calendar year. Employees must provide the court summons to HR and submit any jury-duty pay received from the court to payroll, which will be deducted from the company-paid amount. Jury duty exceeding 10 business days continues unpaid unless the employee elects to use available PTO.
+- **Bereavement:** Acme Corp provides **5 paid bereavement days** for the death of an immediate family member (spouse, domestic partner, child, parent, or sibling) and **2 paid bereavement days** for an extended family member (grandparent, grandchild, in-law), consistent with the bereavement provisions referenced in the Workplace Conduct Policy (POL-HR-006). Additional time away beyond these allotments may be taken as PTO or unpaid leave with manager approval.
+- Both jury duty and bereavement pay are processed through the standard HR portal (Workday) under "Time Off" using the applicable leave type, separate from the PTO balance described in Section 5.
+
+---
+
+## 11. Contact
 
 Questions about this policy should be directed to **hr@acmecorp.example.com** or your HR Business Partner.

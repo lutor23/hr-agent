@@ -62,7 +62,7 @@ call sequences are in [`design-and-evaluation.md`](./design-and-evaluation.md).
 app/          FastAPI app, agent orchestrator, RAG retriever/ingest, shared config
 mcp/          MCP tool server (7 tools) — see app/agent.py for why it's loaded two
               different ways (real subprocess locally/in tests, in-process on Render)
-corpus/       10 policy documents: 8 Markdown, 1 HTML, 1 PDF
+corpus/       17 policy documents: 15 Markdown, 1 HTML, 1 PDF
 mock_data/    Synthetic employees, PTO balances, benefits (obviously fake)
 evaluation/   25-item eval set, harness, and results
 tests/        117 tests (unit, integration, real MCP protocol round-trips)

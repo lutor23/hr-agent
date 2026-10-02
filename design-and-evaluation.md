@@ -20,7 +20,7 @@ a real `call_tool()` round-trip, provable by the `trace` on every response.
 
 | Decision | Choice | Why |
 |---|---|---|
-| Corpus | 10 Acme Corp HR/IT policy documents: 8 Markdown, 1 HTML, 1 PDF | ≥2 source formats required; chosen formats match how real policy docs actually show up (wiki markdown, a web page, a signed PDF) |
+| Corpus | 17 Acme Corp HR/IT policy documents (~91K characters, ~30-46 estimated pages): 15 Markdown, 1 HTML, 1 PDF | ≥2 source formats required; chosen formats match how real policy docs actually show up (wiki markdown, a web page, a signed PDF) |
 | Chunking | Heading-aware, then paragraph-packed to ~1200 chars | Keeps a policy section's ideas together instead of splitting mid-thought; the heading becomes the chunk's `section` metadata, which is what citations are built from |
 | Embedding model | `all-MiniLM-L6-v2`, via chromadb's bundled ONNX runtime (not sentence-transformers/torch) | Same model either way; the ONNX path has no torch dependency, which matters a lot once the free-tier memory story (§6) is accounted for |
 | Vector store | ChromaDB, local persistent client, cosine similarity | No external service, persists to disk, trivial to reset for tests |

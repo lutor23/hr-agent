@@ -116,7 +116,16 @@ Managers must complete the following within the first week:
 
 ---
 
-## 10. Contact
+## 10. New Hire Documentation and Compliance Requirements
+
+- Form I-9 (employment eligibility verification) must be completed within **3 business days** of the start date; remote hires complete Section 2 via an authorized remote notary or an Acme Corp-designated representative, consistent with federal E-Verify requirements.
+- Form W-4 and any applicable state withholding forms must be submitted before the first payroll run to avoid default maximum withholding.
+- New hires relocating from outside the U.S. on a work visa must complete additional documentation coordinated by HR and outside immigration counsel; the standard onboarding timeline in Sections 2–3 may be adjusted to accommodate visa-related start-date constraints.
+- All new hire paperwork is retained in the employee's personnel file consistent with the retention schedule in the Data Security and Acceptable Use Policy (POL-IT-001 §11).
+
+---
+
+## 11. Contact
 
 Onboarding questions: **hr@acmecorp.example.com**  
 IT setup issues: **helpdesk@acmecorp.example.com**
