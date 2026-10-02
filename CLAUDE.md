@@ -161,11 +161,20 @@ Repo must be shared with GitHub user **`quantic-grader`**.
   - Ablation (retrieval top_k, no LLM): recall@k=3 = 0.792, recall@k=10 = 1.0 — unchanged from the first run (deterministic, no LLM involved), confirms raising top_k meaningfully improves recall on this corpus.
   - Zero crashes/unhandled errors across all 25 items, second run in a row.
 
-### 🔲 Days 11–12 — Docs & Demo (Oct 2–3)
-- [ ] `README.md`, `design-and-evaluation.md`, `ai-tooling.md`, `deployed.md` (all required at repo root, see spec above)
-- [ ] Architecture diagram; 7–10 min demo video, two agentic tasks, all group members on camera with ID
+### 🟡 Days 11–12 — Docs & Demo IN PROGRESS
+- [x] `README.md`, `design-and-evaluation.md`, `ai-tooling.md` (drafted — user's edit pass pending), `deployed.md` — all at repo root per spec
+- [x] Architecture diagram — real SVG (`docs/architecture.svg`), rendered and visually checked before committing (one overlap fix), embedded in `design-and-evaluation.md`
+- [x] Two demo tasks documented with real, observed MCP call sequences (pulled directly from `evaluation/results.json`, not hypothetical) — doubles as the demo video script
+- [ ] **Not done — needs you:** the actual 7–10 min demo video recording (all group members on camera with ID — not something I can do)
+- [x] `quantic-grader` repo access and `RENDER_DEPLOY_HOOK_URL` GitHub secret — both confirmed done by the user; verified the resulting CI→Render pipeline actually works end-to-end with two real triggered deploys, both succeeding
 
-### 🔲 Day 13 — Final Review & Submit (Oct 4)
+### 🟡 Day 13 — Final Review & Submit IN PROGRESS
+- [x] **Full project retest (Oct 2), two real gaps found and fixed, one real gap found and flagged:**
+  - **Fixed:** `evaluation/run_eval.py` never computed `action_safety_pass_rate`, despite the grading spec naming it explicitly alongside tool-selection/workflow-completion/escalation accuracy. Added `action_safety_ok()`: for every item that actually called a mock-action tool (`create_mock_hr_ticket`/`draft_hr_email`), checks the call succeeded *and* the final answer told the user it was mock/a draft — the thing code alone can't guarantee, since the tools themselves are already hardcoded safe. Computed retroactively against the already-stored `evaluation/results.json` (no new LLM calls needed, same quota-conscious principle as the citation-bug fixes) — result: **1.0** (the one item that triggers a mock action passed). `README.md`/`design-and-evaluation.md` updated.
+  - **Fixed:** `evaluation/run_eval.py` had zero automated test coverage — only validated through two full live runs. Added `tests/test_run_eval.py` (23 tests) covering every deterministic, no-LLM-call piece: `score_item`'s per-category behavior checks, `action_safety_ok`, `summarize`'s aggregation and percentile math, `run_ablation`. 140 tests passing overall.
+  - **Fixed, smaller:** `.github/workflows/ci.yml`'s embedding-model cache comment still referenced sentence-transformers/HF Hub, contradicting the actual path (`~/.cache/chroma/onnx_models`) fixed in an earlier session — cleaned up for consistency.
+  - **Found, not fixed — flagged for a decision:** the corpus is sized at ~14-21 estimated pages (42,531 total chars across 97 chunks), under the spec's required 30-120 page range. File count (10) is within the required 5-20 range. Expanding corpus content is a real authoring task with downstream effects (chunk counts, re-ingestion, eval-set doc_id references) that shouldn't happen silently — needs a decision on whether/how to address before submission.
+  - **Confirmed healthy via Render's own telemetry** (internal health-check probes returning 200 OK, deploy status `not_suspended`) but **could not verify external reachability from this sandbox** — `https://hr-agent-xds2.onrender.com` returned TLS-level connection resets on every attempt, while unrelated sites (google.com, Render's own dashboard) worked fine from the same sandbox. Most likely cause: this sandbox's IP tripped some edge-level rate-limit/abuse-protection from the sheer volume of automated requests sent to this one endpoint across today's testing — not an application defect, since Render's own internal checks confirm the app itself is responding normally. **Needs the user to verify from their own browser/network** for a trustworthy external confirmation.
 
 ## Key Files
 

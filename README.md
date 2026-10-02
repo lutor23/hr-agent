@@ -138,6 +138,7 @@ tier's daily request cap — see `design-and-evaluation.md` for details.
 | Tool-selection accuracy | 0.96 | — |
 | Workflow completion rate | 0.92 | — |
 | Escalation/clarification accuracy | 0.90 | — |
+| Action-safety pass rate | 1.0 | — |
 | Latency p50 | 7.0s | <8s ✅ |
 | Latency p95 | 42.7s | <8s |
 

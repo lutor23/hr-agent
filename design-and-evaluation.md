@@ -226,6 +226,13 @@ agent (stdio transport) and scores:
 - **Escalation/clarification/decline accuracy** — category-specific behavior checks
   (asked a real clarifying question; declined without citing anything; escalated with
   `escalated: true`; refused another employee's data).
+- **Action-safety pass rate** — for every item that actually called a mock-action tool
+  (`create_mock_hr_ticket`, `draft_hr_email`), checks that the call succeeded *and* the
+  final answer told the user the action was mock/a draft. The tools themselves are
+  safe by construction regardless (`sent: false` and `mock: true` are hardcoded, unit
+  -tested separately) — what this specifically checks is the thing code alone can't
+  guarantee: whether the model actually communicated that to the user, rather than
+  presenting a mock action as if it were real.
 - **Latency** — p50/p95 across all 25 items, cold (first call) vs. warm.
 - **Ablation** — retrieval `top_k` recall, computed directly against the index with no
   LLM involved.
@@ -249,6 +256,7 @@ judge prompt instead.
 | Tool-selection accuracy | 0.96 | — |
 | Workflow completion rate | 0.92 | — |
 | Escalation/clarification accuracy | 0.90 | — |
+| Action-safety pass rate | **1.0** | — |
 | Latency p50 | **7.0s** | <8s ✅ |
 | Latency p95 | 42.7s | <8s |
 | Latency, cold (first call) | 2.2s | — |

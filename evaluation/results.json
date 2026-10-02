@@ -7,6 +7,7 @@
     "citation_accuracy_avg": 0.792,
     "tool_selection_accuracy": 0.96,
     "escalation_clarification_accuracy": 0.9,
+    "action_safety_pass_rate": 1.0,
     "latency_p50_ms": 6983.4,
     "latency_p95_ms": 42683.6,
     "latency_cold_ms": 2190.6,
@@ -80,7 +81,8 @@
       "workflow_completed": true,
       "behavior_expected": "answer",
       "behavior_ok": null,
-      "cold": true
+      "cold": true,
+      "action_safety_ok": null
     },
     {
       "id": "straightforward-02",
@@ -121,7 +123,8 @@
       "workflow_completed": true,
       "behavior_expected": "answer",
       "behavior_ok": null,
-      "cold": false
+      "cold": false,
+      "action_safety_ok": null
     },
     {
       "id": "straightforward-03",
@@ -162,7 +165,8 @@
       "workflow_completed": true,
       "behavior_expected": "answer",
       "behavior_ok": null,
-      "cold": false
+      "cold": false,
+      "action_safety_ok": null
     },
     {
       "id": "straightforward-04",
@@ -203,7 +207,8 @@
       "workflow_completed": true,
       "behavior_expected": "answer",
       "behavior_ok": null,
-      "cold": false
+      "cold": false,
+      "action_safety_ok": null
     },
     {
       "id": "straightforward-05",
@@ -244,7 +249,8 @@
       "workflow_completed": true,
       "behavior_expected": "answer",
       "behavior_ok": null,
-      "cold": false
+      "cold": false,
+      "action_safety_ok": null
     },
     {
       "id": "straightforward-06",
@@ -292,7 +298,8 @@
       "workflow_completed": true,
       "behavior_expected": "answer",
       "behavior_ok": null,
-      "cold": false
+      "cold": false,
+      "action_safety_ok": null
     },
     {
       "id": "multidoc-01",
@@ -325,7 +332,8 @@
       "workflow_completed": true,
       "behavior_expected": "answer",
       "behavior_ok": null,
-      "cold": false
+      "cold": false,
+      "action_safety_ok": null
     },
     {
       "id": "multidoc-02",
@@ -373,7 +381,8 @@
       "workflow_completed": true,
       "behavior_expected": "answer",
       "behavior_ok": null,
-      "cold": false
+      "cold": false,
+      "action_safety_ok": null
     },
     {
       "id": "multidoc-03",
@@ -418,7 +427,8 @@
       "workflow_completed": true,
       "behavior_expected": "answer",
       "behavior_ok": null,
-      "cold": false
+      "cold": false,
+      "action_safety_ok": null
     },
     {
       "id": "multidoc-04",
@@ -466,7 +476,8 @@
       "workflow_completed": true,
       "behavior_expected": "answer",
       "behavior_ok": null,
-      "cold": false
+      "cold": false,
+      "action_safety_ok": null
     },
     {
       "id": "multidoc-05",
@@ -514,7 +525,8 @@
       "workflow_completed": true,
       "behavior_expected": "answer",
       "behavior_ok": null,
-      "cold": false
+      "cold": false,
+      "action_safety_ok": null
     },
     {
       "id": "tool-01",
@@ -546,7 +558,8 @@
       "workflow_completed": true,
       "behavior_expected": "answer",
       "behavior_ok": null,
-      "cold": false
+      "cold": false,
+      "action_safety_ok": null
     },
     {
       "id": "tool-02",
@@ -578,7 +591,8 @@
       "workflow_completed": true,
       "behavior_expected": "answer",
       "behavior_ok": null,
-      "cold": false
+      "cold": false,
+      "action_safety_ok": null
     },
     {
       "id": "tool-03",
@@ -620,7 +634,8 @@
       "workflow_completed": false,
       "behavior_expected": "answer",
       "behavior_ok": null,
-      "cold": false
+      "cold": false,
+      "action_safety_ok": null
     },
     {
       "id": "tool-04",
@@ -672,7 +687,8 @@
       "workflow_completed": true,
       "behavior_expected": "answer",
       "behavior_ok": null,
-      "cold": false
+      "cold": false,
+      "action_safety_ok": null
     },
     {
       "id": "tool-05",
@@ -762,7 +778,8 @@
       "workflow_completed": true,
       "behavior_expected": "escalate",
       "behavior_ok": true,
-      "cold": false
+      "cold": false,
+      "action_safety_ok": true
     },
     {
       "id": "tool-06",
@@ -794,7 +811,8 @@
       "workflow_completed": false,
       "behavior_expected": "refuse_other_employee",
       "behavior_ok": true,
-      "cold": false
+      "cold": false,
+      "action_safety_ok": null
     },
     {
       "id": "ambiguous-01",
@@ -813,7 +831,8 @@
       "workflow_completed": true,
       "behavior_expected": "clarify",
       "behavior_ok": true,
-      "cold": false
+      "cold": false,
+      "action_safety_ok": null
     },
     {
       "id": "ambiguous-02",
@@ -861,7 +880,8 @@
       "workflow_completed": true,
       "behavior_expected": "clarify",
       "behavior_ok": false,
-      "cold": false
+      "cold": false,
+      "action_safety_ok": null
     },
     {
       "id": "ambiguous-03",
@@ -880,7 +900,8 @@
       "workflow_completed": true,
       "behavior_expected": "clarify",
       "behavior_ok": true,
-      "cold": false
+      "cold": false,
+      "action_safety_ok": null
     },
     {
       "id": "ambiguous-04",
@@ -899,7 +920,8 @@
       "workflow_completed": true,
       "behavior_expected": "clarify",
       "behavior_ok": true,
-      "cold": false
+      "cold": false,
+      "action_safety_ok": null
     },
     {
       "id": "outofscope-01",
@@ -918,7 +940,8 @@
       "workflow_completed": true,
       "behavior_expected": "decline",
       "behavior_ok": true,
-      "cold": false
+      "cold": false,
+      "action_safety_ok": null
     },
     {
       "id": "outofscope-02",
@@ -937,7 +960,8 @@
       "workflow_completed": true,
       "behavior_expected": "decline",
       "behavior_ok": true,
-      "cold": false
+      "cold": false,
+      "action_safety_ok": null
     },
     {
       "id": "outofscope-03",
@@ -956,7 +980,8 @@
       "workflow_completed": true,
       "behavior_expected": "decline",
       "behavior_ok": true,
-      "cold": false
+      "cold": false,
+      "action_safety_ok": null
     },
     {
       "id": "outofscope-04",
@@ -975,7 +1000,8 @@
       "workflow_completed": true,
       "behavior_expected": "decline",
       "behavior_ok": true,
-      "cold": false
+      "cold": false,
+      "action_safety_ok": null
     }
   ]
 }
