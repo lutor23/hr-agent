@@ -21,10 +21,14 @@ jobs:
       # sentence-transformers downloads all-MiniLM-L6-v2 (~90MB) from HF Hub on first
       # use; cache it so most runs don't re-download it.
       - name: Cache embedding model
+        # Path updated on Day 8: embeddings moved from sentence-transformers
+        # (~/.cache/huggingface) to chromadb's bundled ONNX runtime, which caches
+        # the model at ~/.cache/chroma/onnx_models instead (see app/ingest.py's
+        # get_embedding_function()). The old path was stale and never hit.
         uses: actions/cache@v4
         with:
-          path: ~/.cache/huggingface
-          key: hf-minilm-l6-v2-${{ hashFiles('requirements.txt') }}
+          path: ~/.cache/chroma/onnx_models
+          key: onnx-minilm-l6-v2-${{ hashFiles('requirements.txt') }}
 
       - name: Install dependencies
         run: pip install -r requirements.txt
