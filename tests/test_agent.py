@@ -154,6 +154,28 @@ def test_citation_survives_non_breaking_hyphen_in_doc_id():
     assert [(c.doc_id, c.section) for c in run_agent(llm_fn).citations] == [("POL-IT-001", "Network Security")]
 
 
+def test_citation_survives_parenthetical_style():
+    """Observed for real in a second Day 9 evaluation run: the same model used plain
+    parentheses instead of square brackets ("(POL-IT-001: ...)") for one answer,
+    dropping its citations the same way the bracket lookalikes did."""
+    llm_fn = scripted(
+        calls(tool_call("get_policy_section", doc_id="POL-IT-001", section="Network Security")),
+        final("Use the VPN (POL-IT-001: Network Security)."),
+    )
+    assert [(c.doc_id, c.section) for c in run_agent(llm_fn).citations] == [("POL-IT-001", "Network Security")]
+
+
+def test_parenthetical_prose_without_a_doc_id_is_not_mistaken_for_a_citation():
+    """Folding '(' ')' into '[' ']' globally before matching must not start treating
+    unrelated parenthetical text as a citation — CITATION_RE still requires the
+    literal POL-XX-NNN pattern inside."""
+    llm_fn = scripted(
+        calls(tool_call("get_policy_section", doc_id="POL-HR-001", section="Overview")),
+        final("PTO accrues over time [POL-HR-001: Overview] (see the employee handbook for more)."),
+    )
+    assert [(c.doc_id, c.section) for c in run_agent(llm_fn).citations] == [("POL-HR-001", "Overview")]
+
+
 def test_employee_cannot_read_another_employees_records():
     llm_fn = scripted(
         calls(tool_call("check_pto_balance", employee_id="E002")),

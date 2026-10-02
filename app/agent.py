@@ -103,20 +103,23 @@ def _snippet(text: str) -> str:
 
 CITATION_RE = re.compile(r"\[(POL-[A-Z]+-\d+)(?:\s*:\s*([^\]]+))?\]")
 
-# Some free-tier models substitute visually-similar Unicode characters for the plain
-# ASCII brackets/hyphens the system prompt asks for in citations. Observed for real
-# during Day 9 evaluation: nvidia/nemotron-3-super-120b-a12b used U+2011 NON-BREAKING
-# HYPHEN inside doc IDs ("POL‑IT‑001") and fullwidth CJK brackets ("【POL-HR-005: ...】")
-# instead of "[...]" — both silently defeated CITATION_RE and dropped citations from
-# fully correct, well-cited answers (3 of 5 multi-doc eval items scored citation_acc=0
-# this way, not because the model failed to cite — it did — but because the citations
-# were unparseable). Normalizing known lookalikes before matching is far more robust
-# than trying to enumerate every variant inside the regex itself, and this affects
-# real /chat responses, not just eval scoring.
+# Some free-tier models substitute other delimiters/characters for the plain ASCII
+# "[DOC-ID: Section]" the system prompt asks for. Observed for real across two Day 9
+# evaluation runs: nvidia/nemotron-3-super-120b-a12b used U+2011 NON-BREAKING HYPHEN
+# inside doc IDs ("POL‑IT‑001"), fullwidth CJK brackets ("【POL-HR-005: ...】"), and
+# plain parentheses ("(POL-IT-001: ...)") instead of square brackets — all three
+# silently defeated CITATION_RE and dropped citations from fully correct, well-cited
+# answers. Normalizing known lookalikes before matching (not applied to the answer
+# text actually shown to the user — translate() here only feeds the regex) is far
+# more robust than trying to enumerate every variant inside the regex itself, and
+# this affects real /chat responses, not just eval scoring. Folding "(" ")" into
+# "[" "]" globally before matching is safe even with unrelated parenthetical text
+# elsewhere in the answer: CITATION_RE still requires the literal "POL-XX-NNN"
+# pattern inside, so prose like "(see the handbook)" never matches regardless.
 _CITATION_MARKUP_NORMALIZE = str.maketrans(
     {
-        "【": "[", "［": "[",  # 【 ［ -> [
-        "】": "]", "］": "]",  # 】 ］ -> ]
+        "【": "[", "［": "[", "(": "[",  # 【 ［ ( -> [
+        "】": "]", "］": "]", ")": "]",  # 】 ］ ) -> ]
         "‐": "-", "‑": "-", "‒": "-", "–": "-", "—": "-",  # dash variants -> -
     }
 )
