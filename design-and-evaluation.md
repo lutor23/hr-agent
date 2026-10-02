@@ -7,47 +7,7 @@ and full evaluation results and methodology.
 
 ## 1. Architecture
 
-```
-┌─────────────────┐
-│  Browser / curl  │
-└────────┬─────────┘
-         │ POST /chat, GET /health
-         ▼
-┌──────────────────────────────────────────────────┐
-│  FastAPI app  (app/main.py)                       │
-│  • one long-lived HRAgent, shared across requests │
-│  • /health reports MCP connectivity + index size  │
-└────────┬───────────────────────────────────────────┘
-         │ agent.run(message, employee_id)
-         ▼
-┌──────────────────────────────────────────────────┐
-│  Agent orchestrator  (app/agent.py)               │
-│  • OpenAI-format tool-calling loop (max 6 steps)  │
-│  • builds/records the operational trace           │
-│  • verifies every citation against a real result  │
-└────────┬───────────────────────────────────────────┘
-         │ real MCP protocol: ClientSession.list_tools() / call_tool()
-         │ (stdio subprocess locally & in tests; in-process on Render — see §6)
-         ▼
-┌──────────────────────────────────────────────────┐
-│  MCP server  (mcp/server.py) — 7 tools            │
-└──────┬───────────────────────────────┬────────────┘
-       │                               │
-       ▼                               ▼
-┌─────────────────────┐      ┌──────────────────────┐
-│  RAG index           │      │  Mock employee data   │
-│  ChromaDB +           │      │  mock_data/*.json      │
-│  ONNX MiniLM-L6-v2     │      │  (employees, PTO,     │
-│  embeddings            │      │  benefits)             │
-│  corpus/ (10 docs,     │      └──────────────────────┘
-│  97 chunks)            │
-└─────────────────────┘
-         ▲
-         │ OpenRouter (OpenAI-compatible)
-┌──────────────────────┐
-│  LLM provider          │
-└──────────────────────┘
-```
+![Architecture diagram: browser/curl calls the FastAPI app, which runs one long-lived agent orchestrator; the orchestrator calls an LLM provider and, over the real MCP protocol, an MCP server exposing 7 tools; the MCP server reads the RAG index (ChromaDB + corpus) and mock employee data](docs/architecture.svg)
 
 **Why this shape.** The web app never touches the RAG index or employee data
 directly — every read goes through an MCP tool, so the same tool surface that a
