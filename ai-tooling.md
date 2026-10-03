@@ -87,6 +87,38 @@ wrong once actually exercised), not from writing more code.
   plans made before any code exists are estimates, not specifications, and should be
   corrected against real output rather than carried forward unchallenged.
 
+## GitHub CLI (`gh`) and Render CLI for operational troubleshooting
+
+Beyond writing code, Claude Code used the **Render CLI** (from Day 8 onward) and the
+**GitHub CLI (`gh`)** (installed and authenticated during the Day 13 final-review pass,
+via `brew install gh` + `gh auth login`) to troubleshoot the deployed system directly,
+rather than inferring its state from `git push` output or application code alone.
+
+- **Render CLI** (`render services`, `render deploys list/create`, `render logs`,
+  `render ssh`) was used throughout to trigger real deploys, pull real deploy history
+  with timestamps and commit SHAs, and tail real production log lines — distinguishing,
+  for example, Render's own internal `/health` probes (which stayed green throughout)
+  from genuine external reachability (which repeatedly failed from this sandbox with a
+  TLS-level connection reset, while unrelated sites worked fine from the same machine —
+  pointing at a sandbox/network-boundary issue rather than an application defect).
+- **`gh`** (`gh run list/view`, `gh auth status`) let Claude Code check real GitHub
+  Actions run outcomes instead of assuming a push succeeded because the `git push`
+  command itself returned no error. This directly surfaced a previously invisible
+  problem: a deploy triggered earlier the same day (`bb50357`) had actually **crashed
+  about 30 seconds after starting** and sat with zero running processes for 17 minutes
+  before Render's own orchestrator gave up and marked it `update_failed` — something
+  no one had caught, because there had been no way to introspect CI/deploy status
+  directly until `gh` was installed. (Render never promotes a failed deploy into
+  production, so the live site had kept serving the last *successful* build the whole
+  time — real users were never actually affected — but the gap in visibility was real
+  and is exactly the kind of thing that should be checked, not assumed, after every
+  push to `main`.)
+- A background **`Monitor`** loop (polling `render deploys list` every 15s until the
+  next deploy reached a terminal status) was used to watch a subsequent deploy land
+  cleanly end-to-end — live in ~2.5 minutes, no crash — turning "I pushed, it should be
+  fine" into an actually-observed result, consistent with the project's broader pattern
+  of verifying claims against real system behavior rather than code review alone.
+
 ## Render skills
 
 The Render skills were installed locally with `render skills install` and consulted
