@@ -11,7 +11,24 @@ services:
     region: oregon
     branch: main
     autoDeploy: false
-    buildCommand: pip install -r requirements.txt
+    # Ingest runs HERE, in the build step, not at runtime. Found live (Day 14): after
+    # the Day 13 corpus expansion (97 -> 177 chunks), the deployed service crash-looped
+    # under real chat traffic - a live /chat request calling tools would get ~60-70s in
+    # and then the WHOLE container would restart (no OOM banner, same "proactively
+    # cycling near the limit" signature as earlier incidents), discarding the in-flight
+    # request. Root-caused via `render logs` across several restarts: every single
+    # restart - not just cold starts - was re-downloading the 79MB ONNX model and
+    # re-embedding all 177 chunks from scratch before serving again, meaning the
+    # (large, batch-bounded but still real) embedding memory spike was recurring on
+    # every crash, not just once per deploy, and competing with a live request's own
+    # memory use is plausibly exactly what was pushing it over 512Mi. Moving ingestion
+    # into the build step means the running process's get_ready_collection() sees a
+    # non-empty collection immediately (count_chunks() > 0) and never calls ingest()
+    # at all - the live process only ever embeds one short query at a time after this,
+    # never the whole corpus, and every restart (cold start or crash) comes back with
+    # the index already on disk instead of rebuilding it. `--smoke` fails the build
+    # (not a half-broken deploy) if retrieval quality regresses.
+    buildCommand: pip install -r requirements.txt && python -m app.ingest --reset --smoke
     # Ingest is NOT a startCommand pre-step: `X && uvicorn ...` doesn't start uvicorn
     # (so no port opens) until X finishes, and uvicorn itself binds its socket only
     # after its own lifespan-startup handler returns. On free-tier CPU with no
@@ -19,7 +36,9 @@ services:
     # routinely exceeded Render's port-scan timeout - first real deploy failed with
     # "no open ports detected". Fix: the FastAPI process never ingests at all;
     # mcp/server.py's subprocess builds the index itself, concurrently with serving
-    # requests, so nothing here blocks the port from opening.
+    # requests, so nothing here blocks the port from opening. (Now, per the build-step
+    # fix above, it doesn't need to build anything at all in the common case - it just
+    # finds the index already populated from the build step and serves immediately.)
     #
     # A second, separate failure ("Out of memory, used over 512Mi") showed up once
     # the port-bind issue was fixed: app/main.py's lifespan was *also* eagerly
