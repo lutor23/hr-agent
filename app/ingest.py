@@ -53,6 +53,20 @@ def get_embedding_function():
     # provider is forced explicitly rather than auto-detected, since auto-detection
     # can pick a provider (e.g. CoreML on Apple Silicon) with very different, even
     # unbounded-looking, memory behavior from what a Linux deploy target will use.
+    #
+    # Redirect its model-cache location from the default Path.home()/.cache/chroma
+    # to somewhere under this project's own root. Found live (Day 14, alongside the
+    # build-time-ingest fix): Render's build step and runtime container do NOT share
+    # $HOME's cache - CHROMA_PERSIST_DIR (already pointed at a path under the project
+    # root) correctly persisted the ingested index from build to runtime, but the
+    # 79MB ONNX model archive, cached under the default Path.home() location, was
+    # still being re-downloaded from S3 on every runtime process start. Overriding
+    # the class attribute before construction (there's no constructor parameter for
+    # this) means the model downloaded once during the build step's --smoke run is
+    # already on disk when the runtime process starts.
+    embedding_functions.ONNXMiniLM_L6_V2.DOWNLOAD_PATH = (
+        config.ROOT / ".onnx_model_cache" / embedding_functions.ONNXMiniLM_L6_V2.MODEL_NAME
+    )
     return embedding_functions.ONNXMiniLM_L6_V2(preferred_providers=["CPUExecutionProvider"])
 
 

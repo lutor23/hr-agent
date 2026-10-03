@@ -11,6 +11,7 @@ venv/
 # generated
 chroma_db/
 chroma_data/
+.onnx_model_cache/
 *.log
 logs/
 
